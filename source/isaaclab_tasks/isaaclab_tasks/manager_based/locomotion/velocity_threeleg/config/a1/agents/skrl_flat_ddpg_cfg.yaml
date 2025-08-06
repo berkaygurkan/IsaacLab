@@ -1,0 +1,84 @@
+seed: 42
+
+# Models are instantiated using skrl's model instantiator utility
+# https://skrl.readthedocs.io/en/latest/api/utils/model_instantiators.html
+models:
+  separate: True # DDPG için aktör ve kritik ağları ayrıdır
+  policy: # Aktör ağı (deterministic policy) - bkz: deterministic_model parametreleri
+    class: DeterministicMixin
+    clip_actions: True
+    network:
+      - name: net
+        input: STATES
+        layers: [128, 128, 128]
+        activations: elu
+    output: ACTIONS
+  target_policy:
+    class: DeterministicMixin
+    network:
+      - name: net
+        input: STATES
+        layers: [128, 128, 128]
+        activations: elu
+    output: ACTIONS
+  critic: # Kritik ağı (Q-değeri tahmincisi) - bkz: q_network parametreleri
+    class: DeterministicMixin
+    network:
+      - name: net
+        input: OBSERVATIONS_ACTIONS # Kritik ağının girdisi state ve action'dır
+        layers: [256, 256, 128]
+        activations: [elu,elu,elu] # Son katman linear olmalı
+    output: ONE
+  target_critic:
+    class: DeterministicMixin
+    network:
+      - name: net
+        input: OBSERVATIONS_ACTIONS
+        layers: [256, 256, 128]
+        activations: [elu, elu, elu]
+    output: ONE
+
+# Replay buffer
+# https://skrl.readthedocs.io/en/latest/api/memories/replay.html
+memory:
+  class: RandomMemory
+  memory_size: 100000
+  replacement: False # Eski deneyimlerin üzerine yazma
+
+# DDPG agent configuration (field names are from DDPG_DEFAULT_CONFIG)
+# https://skrl.readthedocs.io/en/latest/api/agents/ddpg.html
+agent:
+  class: DDPG
+  polyak: 0.995 # Target ağ ağırlıklarının güncellenme oranı
+  discount_factor: 0.99
+  learning_rate: 1.0e-04 # Aktör öğrenme oranı
+  learning_rate_critic: 1.0e-03 # Kritik öğrenme oranı
+  state_preprocessor: null
+  state_preprocessor_kwargs: null
+  value_preprocessor: null
+  value_preprocessor_kwargs: null
+  random_timesteps: 1000 # Keşif için rastgele adımlar
+  learning_starts: 1000 # Öğrenmeye başlama adımı
+  grad_norm_clip: 1.0
+  noise: # Eylem uzayına eklenen gürültü (keşif için) - bkz: gaussian_noise parametreleri
+    class: GaussianNoise
+    mean: 0.0
+    std: 0.1
+    annealing:
+      class: LinearAnnealing
+      start_value: 1.0
+      end_value: 0.1
+      duration: 10000
+  # logging and checkpoint
+  experiment:
+    directory: "unitree_a1_flat_ddpg" # PPO'dan farklı bir dizin
+    experiment_name: ""
+    write_interval: auto
+    checkpoint_interval: auto
+
+# Sequential trainer
+# https://skrl.readthedocs.io/en/latest/api/trainers/sequential.html
+trainer:
+  class: SequentialTrainer
+  timesteps: 72000 # Toplam öğrenme adımı sayısı (rollout sayısı * iterasyon sayısı)
+  environment_info: log

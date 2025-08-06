@@ -1,0 +1,151 @@
+# Copyright (c) 2022-2025, The Isaac Lab Project Developers.
+# All rights reserved.
+#
+# SPDX-License-Identifier: BSD-3-Clause
+
+"""
+Script to train RL agent with skrl.
+
+Visit the skrl documentation (https://skrl.readthedocs.io) to see the examples structured in
+a more user-friendly way.
+"""
+
+"""Launch Isaac Sim Simulator first."""
+
+import argparse
+import sys
+import torch
+
+from isaaclab.app import AppLauncher
+
+
+# add argparse arguments
+parser = argparse.ArgumentParser(description="Train an RL agent with skrl.")
+parser.add_argument("--video", action="store_true", default=False, help="Record videos during training.")
+parser.add_argument("--video_length", type=int, default=200, help="Length of the recorded video (in steps).")
+parser.add_argument("--video_interval", type=int, default=2000, help="Interval between video recordings (in steps).")
+parser.add_argument("--num_envs", type=int, default=None, help="Number of environments to simulate.")
+parser.add_argument("--task", type=str, default=None, help="Name of the task.")
+parser.add_argument("--seed", type=int, default=None, help="Seed used for the environment")
+parser.add_argument(
+    "--distributed", action="store_true", default=False, help="Run training with multiple GPUs or nodes."
+)
+parser.add_argument("--checkpoint", type=str, default=None, help="Path to model checkpoint to resume training.")
+parser.add_argument("--max_iterations", type=int, default=None, help="RL Policy training iterations.")
+parser.add_argument(
+    "--ml_framework",
+    type=str,
+    default="torch",
+    choices=["torch", "jax", "jax-numpy"],
+    help="The ML framework used for training the skrl agent.",
+)
+parser.add_argument(
+    "--algorithm",
+    type=str,
+    default="PPO",
+    choices=["AMP", "PPO", "IPPO", "MAPPO","DDPG"],
+    help="The RL algorithm used for training the skrl agent.",
+)
+
+# append AppLauncher cli args
+AppLauncher.add_app_launcher_args(parser)
+# parse the arguments
+args_cli, hydra_args = parser.parse_known_args()
+# always enable cameras to record video
+if args_cli.video:
+    args_cli.enable_cameras = True
+
+# clear out sys.argv for Hydra
+sys.argv = [sys.argv[0]] + hydra_args
+
+# launch omniverse app
+app_launcher = AppLauncher(args_cli)
+simulation_app = app_launcher.app
+
+"""Rest everything follows."""
+
+import gymnasium as gym
+import os
+import random
+from datetime import datetime
+
+import skrl
+from packaging import version
+
+from gymnasium.wrappers import FlattenObservation
+# check for minimum supported skrl version
+SKRL_VERSION = "1.4.2"
+if version.parse(skrl.__version__) < version.parse(SKRL_VERSION):
+    skrl.logger.error(
+        f"Unsupported skrl version: {skrl.__version__}. "
+        f"Install supported version using 'pip install skrl>={SKRL_VERSION}'"
+    )
+    exit()
+
+if args_cli.ml_framework.startswith("torch"):
+    from skrl.utils.runner.torch import Runner
+elif args_cli.ml_framework.startswith("jax"):
+    from skrl.utils.runner.jax import Runner
+
+from isaaclab.envs import (
+    DirectMARLEnv,
+    DirectMARLEnvCfg,
+    DirectRLEnvCfg,
+    ManagerBasedRLEnvCfg,
+    multi_agent_to_single_agent,
+)
+from isaaclab.utils.assets import retrieve_file_path
+from isaaclab.utils.dict import print_dict
+from isaaclab.utils.io import dump_pickle, dump_yaml
+
+from isaaclab_rl.skrl import SkrlVecEnvWrapper
+
+import isaaclab_tasks  # noqa: F401
+from isaaclab_tasks.utils.hydra import hydra_task_config
+
+# PLACEHOLDER: Extension template (do not remove this comment)
+
+# config shortcuts
+algorithm = args_cli.algorithm.lower()
+#print(algorithm) #CUSTOM DEBUG
+agent_cfg_entry_point = "skrl_cfg_entry_point" if algorithm in ["ppo"] else f"skrl_{algorithm}_cfg_entry_point"
+#print(agent_cfg_entry_point) #CUSTOM DEBUG
+
+
+
+
+
+@hydra_task_config(args_cli.task, agent_cfg_entry_point)
+def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agent_cfg: dict):
+    """Train with skrl agent."""
+    # override configurations with non-hydra CLI arguments
+    env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
+    env_cfg.sim.device = args_cli.device if args_cli.device is not None else env_cfg.sim.device
+
+    env = gym.make(args_cli.task, cfg=env_cfg, render_mode="rgb_array" if args_cli.video else None)
+
+    #env = FlattenObservation(env)
+    env = SkrlVecEnvWrapper(env, ml_framework=args_cli.ml_framework)
+
+    #print("Observation Space:", env.observation_space)
+    #print("Action Space Shape",env.action_space.shape)       # Örneğin: (9,)
+
+    # Durum ve eylem uzaylarını kontrol et
+    print("Wrapped Observation Space:", env.observation_space)
+    print("Wrapped Action Space:", env.action_space.shape)
+    observation, _ = env.reset()
+    action = env.sample_action()
+    print("Sample Observation Shape:", observation.shape)  # Örneğin: (4, 39)
+    print("Sample Action Shape:", action.shape)  # Örneğin: (4, 9)
+    print("Observation Batch Size:", observation.shape[0])  # Örneğin: 4
+    print("Action Batch Size:", action.shape[0])  # Örneğin: 4
+
+    #runner = Runner(env, agent_cfg)
+    #print("Model Input Config:", agent_cfg["models"]["value"]["network"][0]["input"])
+
+
+if __name__ == "__main__":
+    # run the main function
+    main()
+    # close sim app
+    simulation_app.close()

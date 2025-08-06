@@ -61,6 +61,7 @@ def SkrlVecEnvWrapper(
     Reference:
         https://skrl.readthedocs.io/en/latest/api/envs/wrapping.html
     """
+
     # check that input is valid
     if (
         not isinstance(env.unwrapped, ManagerBasedRLEnv)

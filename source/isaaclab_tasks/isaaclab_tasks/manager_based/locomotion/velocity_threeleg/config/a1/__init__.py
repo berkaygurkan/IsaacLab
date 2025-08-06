@@ -19,6 +19,7 @@ gym.register(
         "env_cfg_entry_point": f"{__name__}.threeleg_flat_env_cfg:UnitreeA1ThreeLegFlatEnvCfg",
         "rsl_rl_cfg_entry_point": f"{agents.__name__}.rsl_rl_ppo_cfg:UnitreeA1FlatPPORunnerCfg",
         "skrl_cfg_entry_point": f"{agents.__name__}:skrl_flat_ppo_cfg.yaml",
+        "skrl_ddpg_cfg_entry_point": f"{agents.__name__}:skrl_flat_ddpg_cfg.yaml",      
     },
 )
 
