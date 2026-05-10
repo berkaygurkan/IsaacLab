@@ -1,0 +1,219 @@
+You are working inside a doctoral research software repository for:
+
+Quadruped Fault Tolerant Control via Reinforcement Learning
+
+This repository uses Isaac Sim / Isaac Lab, Python 3.11, PyTorch, YAML-first configuration, and a fork-based Git workflow.
+
+--------------------------------------------------
+ACTIVE TARGET
+--------------------------------------------------
+
+The current active implementation target is:
+
+- Conference paper configuration
+- Method family: RLM1
+- Active variant: RLM1 stripped
+
+Interpretation:
+- teacher-student backbone is active
+- residual learning is active
+- health token is OFF
+
+Unless the user explicitly says otherwise, optimize for the conference-stage target first.
+
+Do NOT assume the repository is currently implementing:
+- RLM1 full
+- uncertainty channel additions
+- safety augmentation
+- later publication phases
+
+Future phases may be known, but they are not the current default.
+
+--------------------------------------------------
+READ ORDER
+--------------------------------------------------
+
+Before making important repo decisions, read in this order:
+
+1. Selected_Method.md
+2. System_Goals.md
+3. Thesis_Main_Method.xlsx
+4. PROJECT_CONTEXT_MAP.md
+5. GIT_WORKFLOW.md
+6. AGENTS.md
+7. CLAUDE.md (if relevant)
+
+If any conflict appears, authority follows that order.
+
+--------------------------------------------------
+GENERAL BEHAVIOR
+--------------------------------------------------
+
+Prefer:
+- small, focused, reversible edits
+- explicit file creation
+- stable naming
+- phase-aware decisions
+- config-first organization
+- reproducibility-friendly structure
+
+Avoid:
+- broad rewrites without request
+- unnecessary file moves
+- silent architectural drift
+- speculative redesign
+- changing multiple unrelated areas at once
+
+When uncertain, preserve structure and minimize surface area.
+
+--------------------------------------------------
+METHOD NAMING RULES
+--------------------------------------------------
+
+Use thesis method IDs only:
+- RLM1
+- RLM2
+- ...
+- RLM9
+
+Do NOT use M-code taxonomy for implementation naming.
+
+For the current stage, prefer names like:
+- RLM1_stripped
+- use_health_token: false
+
+Do NOT rename the conference variant into a separate unrelated method family.
+
+--------------------------------------------------
+CURRENT PHASE FOCUS
+--------------------------------------------------
+
+Current active work band:
+- Phase 0
+- Phase 1
+- Conference target
+- RLM1 stripped
+
+Prioritize work related to:
+- repo structure
+- environment stability
+- fault injection scaffolding
+- config-first setup
+- training/evaluation organization
+- conference metric and artifact preparation
+
+Do NOT prioritize:
+- full token pipeline
+- uncertainty extensions
+- safety shield integration
+- broad future-phase abstractions
+unless explicitly requested.
+
+--------------------------------------------------
+FILE CREATION RULES
+--------------------------------------------------
+
+When creating new files:
+- place them in predictable locations
+- choose names that reflect phase and purpose
+- prefer explicit docs over vague placeholders
+- keep agent-facing files in English
+- keep repo organization human-readable
+
+Expected agent-facing files may include:
+- AGENTS.md
+- CLAUDE.md
+- PROJECT_CONTEXT_MAP.md
+- GIT_WORKFLOW.md
+- .claude/skills/*/SKILL.md
+- agent_prompts/*.md
+- agent_workflows/antigravity/*.yaml
+
+--------------------------------------------------
+EDITING RULES
+--------------------------------------------------
+
+Before editing:
+- identify whether the task is documentation, workflow, config, or code-adjacent structure
+- keep the current conference target visible in the output when relevant
+- avoid introducing future-phase assumptions into present-phase files
+
+When editing:
+- preserve existing intent
+- avoid unnecessary renaming
+- avoid deleting user-authored context files unless explicitly told
+- maintain compatibility with future RLM1-full expansion
+
+After editing:
+- ensure the result is consistent with the active target
+- ensure naming remains stable
+- ensure no M-code leakage entered implementation docs
+
+--------------------------------------------------
+GIT RULES
+--------------------------------------------------
+
+Assume:
+- origin = personal fork
+- upstream = official IsaacLab repository
+
+Do NOT:
+- force push
+- rewrite main casually
+- rename remotes
+- delete branches without explicit instruction
+- sync upstream into a dirty tree without warning
+
+Prefer:
+- feature branches for scoped work
+- main as stable branch
+- small commits with narrow purpose
+
+Read GIT_WORKFLOW.md before proposing Git operations.
+
+--------------------------------------------------
+MACHINE MODEL
+--------------------------------------------------
+
+Assume the canonical execution machine is the Ubuntu workstation.
+
+Canonical paths:
+- repo: ~/thesis/IsaacLab
+- Isaac Sim: ~/isaacsim
+- conda env: isaaclab
+
+PC1 (MacBook) is primarily for writing, orchestration, and remote editing.
+PC2 (Ubuntu) is the canonical execution and experiment machine.
+
+Do not propose heavy execution on the MacBook as the default.
+
+--------------------------------------------------
+SUCCESS CRITERIA
+--------------------------------------------------
+
+A good contribution:
+- improves repo clarity
+- supports the conference-stage implementation target
+- reduces ambiguity for future coding agents
+- stays compatible with later expansion
+- does not overbuild beyond current phase needs
+
+A bad contribution:
+- optimizes mainly for future phases
+- blurs the active target
+- introduces naming drift
+- assumes health token is active
+- invents structure unrelated to the current repository needs
+
+--------------------------------------------------
+FINAL DEFAULT
+--------------------------------------------------
+
+Default to:
+- conference-first
+- RLM1 stripped
+- health token off
+- Phase 0 / Phase 1
+- small, controlled, practical progress
+
+Do not default to the full thesis roadmap.
