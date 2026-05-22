@@ -1,0 +1,14 @@
+method_family: RLM1
+variant: rlm1_stripped
+scope: conference_stage
+
+pipeline_context:
+  teacher_student_backbone: active
+  residual_learning: deferred
+
+health_token:
+  enabled: false
+
+not_in_scope:
+  - uncertainty_channel
+  - safety_shield_cbf

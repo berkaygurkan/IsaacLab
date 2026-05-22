@@ -3,6 +3,8 @@
 #
 # SPDX-License-Identifier: BSD-3-Clause
 
+import torch
+
 import isaaclab.sim as sim_utils
 from isaaclab.assets import AssetBaseCfg
 from isaaclab.envs import ManagerBasedRLEnvCfg
@@ -58,6 +60,11 @@ class MySceneCfg(InteractiveSceneCfg):
 ##
 
 
+def true_fault_state(env) -> torch.Tensor:
+    """Teacher-only true fault state for the safe conference-stage fault-none default."""
+    return torch.zeros(env.num_envs, 1, device=env.device)
+
+
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""
@@ -99,6 +106,52 @@ class ObservationsCfg:
 
     # observation groups
     policy: PolicyCfg = PolicyCfg()
+
+
+@configclass
+class AntTeacherObservationsCfg:
+    """Teacher observations with minimal privileged terms for T06."""
+
+    @configclass
+    class PolicyCfg(ObsGroup):
+        """Observations for the privileged teacher policy."""
+
+        base_height = ObsTerm(func=mdp.base_pos_z)
+        true_fault_state = ObsTerm(func=true_fault_state)
+        base_velocity = ObsTerm(func=mdp.base_lin_vel)
+        base_ang_vel = ObsTerm(func=mdp.base_ang_vel)
+        base_yaw_roll = ObsTerm(func=mdp.base_yaw_roll)
+        base_angle_to_target = ObsTerm(func=mdp.base_angle_to_target, params={"target_pos": (1000.0, 0.0, 0.0)})
+        base_up_proj = ObsTerm(func=mdp.base_up_proj)
+        base_heading_proj = ObsTerm(func=mdp.base_heading_proj, params={"target_pos": (1000.0, 0.0, 0.0)})
+        joint_pos_norm = ObsTerm(func=mdp.joint_pos_limit_normalized)
+        joint_vel_rel = ObsTerm(func=mdp.joint_vel_rel, scale=0.2)
+        contacts = ObsTerm(
+            func=mdp.body_incoming_wrench,
+            scale=0.1,
+            params={
+                "asset_cfg": SceneEntityCfg(
+                    "robot", body_names=["front_left_foot", "front_right_foot", "left_back_foot", "right_back_foot"]
+                )
+            },
+        )
+        actions = ObsTerm(func=mdp.last_action)
+
+        def __post_init__(self):
+            self.enable_corruption = False
+            self.concatenate_terms = True
+
+    policy: PolicyCfg = PolicyCfg()
+
+
+@configclass
+class AntStudentObservationsCfg:
+    """Student-stage observations with student-safe and teacher-privileged groups for T07-A."""
+
+    # student-safe group (must not include true_fault_state)
+    policy: ObservationsCfg.PolicyCfg = ObservationsCfg.PolicyCfg()
+    # teacher-privileged group (for future T07-B handoff)
+    teacher_policy: AntTeacherObservationsCfg.PolicyCfg = AntTeacherObservationsCfg.PolicyCfg()
 
 
 @configclass
@@ -182,3 +235,17 @@ class AntEnvCfg(ManagerBasedRLEnvCfg):
         self.sim.physics_material.static_friction = 1.0
         self.sim.physics_material.dynamic_friction = 1.0
         self.sim.physics_material.restitution = 0.0
+
+
+@configclass
+class AntTeacherEnvCfg(AntEnvCfg):
+    """Ant teacher environment with privileged policy observations for T06."""
+
+    observations: AntTeacherObservationsCfg = AntTeacherObservationsCfg()
+
+
+@configclass
+class AntStudentEnvCfg(AntEnvCfg):
+    """Ant student environment exposing T07-A observation contract."""
+
+    observations: AntStudentObservationsCfg = AntStudentObservationsCfg()

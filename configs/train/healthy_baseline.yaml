@@ -1,0 +1,7 @@
+stage: healthy_baseline
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-v0
+experiment_name: healthy_baseline__rlm1_stripped__none
+run_name: healthy_baseline__rlm1_stripped__none__seed0

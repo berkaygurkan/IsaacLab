@@ -1,0 +1,7 @@
+stage: student
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-Student-v0
+experiment_name: student__rlm1_stripped__none
+run_name: student__rlm1_stripped__none__seed0

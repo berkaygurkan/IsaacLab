@@ -1,0 +1,17 @@
+stage: teacher
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-Teacher-v0
+experiment_name: teacher__rlm1_stripped__none
+run_name: teacher__rlm1_stripped__none__seed0
+
+privileged_teacher:
+  enabled: true
+  terms:
+    - true_fault_state
+    - base_velocity
+    - contacts
+
+health_token:
+  enabled: false
