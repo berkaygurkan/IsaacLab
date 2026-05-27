@@ -5,3 +5,6 @@ seed: 0
 task: Isaac-Ant-Student-v0
 experiment_name: student__rlm1_stripped__none
 run_name: student__rlm1_stripped__none__seed0
+
+# Used by the T07-B distillation launcher.
+teacher_checkpoint_pointer: checkpoints/rlm1_stripped/teacher/none/seed0/latest_checkpoint.yaml
