@@ -1,0 +1,11 @@
+stage: residual
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-Student-v0
+experiment_name: residual__rlm1_stripped__none
+run_name: residual__rlm1_stripped__none__seed0
+student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+residual_scale: 0.1
+reset_hidden_on_done: false
+final_action_clip:

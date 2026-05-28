@@ -5,5 +5,5 @@ seed: 0
 task: Isaac-Ant-Student-v0
 experiment_name: student__rlm1_stripped__none
 run_name: student__rlm1_stripped__none__seed0
-log_dir: logs/rsl_rl/student__rlm1_stripped__none/2026-05-22_13-57-16_student__rlm1_stripped__none__seed0
-checkpoint_path: logs/rsl_rl/student__rlm1_stripped__none/2026-05-22_13-57-16_student__rlm1_stripped__none__seed0/model_0.pt
+log_dir: logs/rsl_rl/student__rlm1_stripped__none/2026-05-28_00-18-04_student__rlm1_stripped__none__seed0
+checkpoint_path: logs/rsl_rl/student__rlm1_stripped__none/2026-05-28_00-18-04_student__rlm1_stripped__none__seed0/model_0.pt

@@ -1,0 +1,9 @@
+stage: residual
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-Student-v0
+experiment_name: residual__rlm1_stripped__none
+run_name: residual__rlm1_stripped__none__seed0
+log_dir: logs/rsl_rl/residual__rlm1_stripped__none/2026-05-28_02-30-14_residual__rlm1_stripped__none__seed0
+checkpoint_path: logs/rsl_rl/residual__rlm1_stripped__none/2026-05-28_02-30-14_residual__rlm1_stripped__none__seed0/model_0.pt
