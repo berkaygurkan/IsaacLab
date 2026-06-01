@@ -6,10 +6,13 @@ import argparse
 import logging
 import os
 import platform
+import random
 import sys
 import time
 from datetime import datetime
 from pathlib import Path
+
+import numpy as np
 
 from isaaclab.app import AppLauncher
 
@@ -169,7 +172,7 @@ import isaaclab_tasks  # noqa: E402,F401
 from isaaclab_tasks.manager_based.classic.ant.agents.rsl_rl_residual_ppo_cfg import (  # noqa: E402
     AntResidualPPORunnerCfg,
 )
-from isaaclab_tasks.utils import parse_env_cfg  # noqa: E402
+from isaaclab_tasks.utils import get_checkpoint_path, parse_env_cfg  # noqa: E402
 
 
 logger = logging.getLogger(__name__)
@@ -190,6 +193,15 @@ def _action_dim(env) -> int:
     if hasattr(env.unwrapped, "action_manager"):
         return env.unwrapped.action_manager.total_action_dim
     return gym.spaces.flatdim(env.unwrapped.single_action_space)
+
+
+def _set_deterministic_seed(seed: int) -> None:
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+    print(f"[INFO] T08.6 deterministic seed: {seed}")
 
 
 def _validate_residual_contract(env, agent_cfg: AntResidualPPORunnerCfg) -> tuple[int, int]:
@@ -226,6 +238,25 @@ def _validate_residual_contract(env, agent_cfg: AntResidualPPORunnerCfg) -> tupl
     return policy_dim, action_dim
 
 
+def _print_runtime_summary(
+    *,
+    task: str,
+    obs_dim: int,
+    action_dim: int,
+    residual_scale: float,
+    final_action_clip: float | None,
+) -> None:
+    print("[INFO] T08.6 runtime summary:")
+    print(f"  task: {task}")
+    print(f"  obs_dim: {obs_dim}")
+    print(f"  action_dim: {action_dim}")
+    print(f"  residual_scale: {residual_scale}")
+    print("  recurrent_student: True")
+    print("  residual_policy_recurrent: False")
+    print("  privileged_obs_used: False")
+    print(f"  final_action_clip: {final_action_clip}")
+
+
 def main() -> None:
     agent_cfg = AntResidualPPORunnerCfg()
     agent_cfg = cli_args.update_rsl_rl_cfg(agent_cfg, args_cli)
@@ -246,6 +277,8 @@ def main() -> None:
         env_cfg.seed = seed
         agent_cfg.seed = seed
 
+    _set_deterministic_seed(agent_cfg.seed)
+
     log_root_path = os.path.abspath(os.path.join("logs", "rsl_rl", agent_cfg.experiment_name))
     print(f"[INFO] Logging experiment in directory: {log_root_path}")
     log_dir = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -253,6 +286,9 @@ def main() -> None:
     if agent_cfg.run_name:
         log_dir += f"_{agent_cfg.run_name}"
     log_dir = os.path.join(log_root_path, log_dir)
+    resume_path = None
+    if agent_cfg.resume:
+        resume_path = get_checkpoint_path(log_root_path, agent_cfg.load_run, agent_cfg.load_checkpoint)
 
     if hasattr(env_cfg, "export_io_descriptors"):
         env_cfg.export_io_descriptors = args_cli.export_io_descriptors
@@ -265,7 +301,17 @@ def main() -> None:
     if isinstance(env.unwrapped, DirectMARLEnv):
         env = multi_agent_to_single_agent(env)
 
-    _validate_residual_contract(env, agent_cfg)
+    policy_dim, action_dim = _validate_residual_contract(env, agent_cfg)
+    _print_runtime_summary(
+        task=args_cli.task,
+        obs_dim=policy_dim,
+        action_dim=action_dim,
+        residual_scale=args_cli.residual_scale,
+        final_action_clip=args_cli.final_action_clip,
+    )
+    print("[INFO] T08.6 residual diagnostics enabled")
+    if args_cli.final_action_clip is not None:
+        print(f"[INFO] T08.6 final action clipping threshold: {args_cli.final_action_clip}")
 
     if args_cli.video:
         video_kwargs = {
@@ -301,6 +347,9 @@ def main() -> None:
 
     runner = OnPolicyRunner(env, agent_cfg.to_dict(), log_dir=log_dir, device=agent_cfg.device)
     runner.add_git_repo_to_log(__file__)
+    if resume_path is not None:
+        print(f"[INFO] T08.6 resume checkpoint: {resume_path}")
+        runner.load(resume_path)
 
     dump_yaml(os.path.join(log_dir, "params", "env.yaml"), env_cfg)
     dump_yaml(os.path.join(log_dir, "params", "agent.yaml"), agent_cfg)

@@ -1,0 +1,121 @@
+stage: T09-A
+method: rlm1_stripped
+scope: conference_stage
+health_token: false
+uncertainty_channel: false
+safety_shield: false
+default_seed: 0
+rows:
+  - ablation_id: A0
+    name: healthy_ppo
+    purpose: Healthy PPO baseline reference
+    stage: healthy_baseline
+    method: rlm1_stripped
+    task: Isaac-Ant-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t05_healthy.sh
+    first_mode: dry_run
+    paper_table_role: Healthy PPO baseline
+    uses_teacher_policy: false
+    uses_true_fault_state: false
+    notes: Healthy PPO checkpoint reference for paper baseline.
+  - ablation_id: A1
+    name: privileged_teacher_reference
+    purpose: Privileged teacher reference, not deployment-facing
+    stage: teacher
+    method: rlm1_stripped
+    task: Isaac-Ant-Teacher-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/teacher/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t06_teacher.sh
+    first_mode: dry_run
+    paper_table_role: Privileged teacher reference
+    uses_teacher_policy: false
+    uses_true_fault_state: true
+    notes: Privileged teacher reference row only, not a deployment policy.
+  - ablation_id: A2
+    name: student_distilled_no_residual
+    purpose: Distilled student without residual correction
+    stage: student
+    method: rlm1_stripped
+    task: Isaac-Ant-Student-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t07_distill.sh
+    first_mode: dry_run
+    paper_table_role: Student without residual
+    uses_teacher_policy: false
+    uses_true_fault_state: false
+    notes: Distilled student checkpoint evaluated without residual correction.
+  - ablation_id: A3
+    name: student_residual_scale_0_0
+    purpose: Frozen student through residual runtime path with residual contribution disabled
+    stage: residual
+    method: rlm1_stripped
+    task: Isaac-Ant-Student-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
+    student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t08_residual_train.sh
+    residual_scale: 0.0
+    first_mode: dry_run
+    paper_table_role: Residual runtime control
+    uses_teacher_policy: false
+    uses_true_fault_state: false
+    notes: Residual wrapper path with zero residual contribution.
+  - ablation_id: A4
+    name: student_residual_scale_0_05
+    purpose: Small residual correction sensitivity row
+    stage: residual
+    method: rlm1_stripped
+    task: Isaac-Ant-Student-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
+    student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t08_residual_train.sh
+    residual_scale: 0.05
+    first_mode: dry_run
+    paper_table_role: Residual scale sensitivity
+    uses_teacher_policy: false
+    uses_true_fault_state: false
+    notes: Small residual scale sensitivity row.
+  - ablation_id: A5
+    name: student_residual_scale_0_1
+    purpose: Default validated T08 residual baseline
+    stage: residual
+    method: rlm1_stripped
+    task: Isaac-Ant-Student-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
+    student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t08_residual_train.sh
+    residual_scale: 0.1
+    first_mode: dry_run
+    paper_table_role: Default residual baseline
+    uses_teacher_policy: false
+    uses_true_fault_state: false
+    notes: Default T08 residual baseline with validated residual scale.
+  - ablation_id: A6
+    name: student_residual_scale_0_2
+    purpose: Larger residual correction sensitivity row
+    stage: residual
+    method: rlm1_stripped
+    task: Isaac-Ant-Student-v0
+    fault: none
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
+    student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    launcher_family: trainers/run_t08_residual_train.sh
+    residual_scale: 0.2
+    first_mode: dry_run
+    paper_table_role: Residual scale sensitivity
+    uses_teacher_policy: false
+    uses_true_fault_state: false
+    notes: Larger residual scale sensitivity row.

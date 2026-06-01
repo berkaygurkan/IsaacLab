@@ -90,6 +90,32 @@ def _shape_of(value: Any) -> tuple[int, ...] | str:
     return tuple(shape)
 
 
+def _tensor_stats(tensor: torch.Tensor) -> str:
+    detached = tensor.detach()
+    finite = torch.isfinite(detached)
+    finite_values = detached[finite]
+    finite_stats = "no finite values"
+    if finite_values.numel() > 0:
+        finite_stats = (
+            f"min={finite_values.min().item():.6g}, "
+            f"max={finite_values.max().item():.6g}, "
+            f"mean={finite_values.mean().item():.6g}"
+        )
+    return (
+        f"shape={tuple(detached.shape)}, dtype={detached.dtype}, device={detached.device}, "
+        f"nan={torch.isnan(detached).sum().item()}, "
+        f"posinf={torch.isposinf(detached).sum().item()}, "
+        f"neginf={torch.isneginf(detached).sum().item()}, {finite_stats}"
+    )
+
+
+def _validate_finite(name: str, tensor: torch.Tensor) -> None:
+    if not torch.isfinite(tensor).all():
+        message = f"[ERROR] T08.6 non-finite {name}: {_tensor_stats(tensor)}"
+        print(message, flush=True)
+        raise RuntimeError(message)
+
+
 def _build_student_model(*, num_envs: int, policy_dim: int, action_dim: int, device: str) -> RNNModel:
     obs = TensorDict(
         {"policy": torch.zeros(num_envs, policy_dim, device=device)},
@@ -178,7 +204,12 @@ class ResidualActionWrapper(gym.Wrapper):
         self.last_base_action: torch.Tensor | None = None
         self.last_delta_action: torch.Tensor | None = None
         self.last_bounded_delta_action: torch.Tensor | None = None
+        self.last_residual_action: torch.Tensor | None = None
         self.last_final_action: torch.Tensor | None = None
+        self.last_mean_abs_delta: torch.Tensor | None = None
+        self.last_max_abs_delta: torch.Tensor | None = None
+        self.last_saturation_ratio: torch.Tensor | None = None
+        self.last_clip_fraction: torch.Tensor | None = None
 
     def reset(self, **kwargs: Any):
         obs, extras = self.env.reset(**kwargs)
@@ -193,16 +224,29 @@ class ResidualActionWrapper(gym.Wrapper):
         delta_action = torch.as_tensor(delta_action, device=self.device, dtype=torch.float32)
         if delta_action.shape != (self.num_envs, self.action_dim):
             raise ValueError(f"Invalid residual action shape: {tuple(delta_action.shape)}")
+        _validate_finite("delta_action", delta_action)
 
         base_action = self._infer_base_action(self._current_policy_obs)
         _log("[T08-A WRAPPER] base action computed", enabled=self.debug)
         bounded_delta_action = torch.tanh(delta_action)
-        final_action = base_action + self.residual_scale * bounded_delta_action
+        _validate_finite("bounded_delta", bounded_delta_action)
+        residual_action = self.residual_scale * bounded_delta_action
+        _validate_finite("residual_action", residual_action)
+        final_action = base_action + residual_action
+        clip_fraction = torch.zeros((), device=self.device, dtype=torch.float32)
         if self.final_action_clip is not None:
+            clip_limit = float(self.final_action_clip)
+            clip_fraction = (final_action.abs() > clip_limit).to(dtype=torch.float32).mean()
             final_action = torch.clamp(final_action, -self.final_action_clip, self.final_action_clip)
+        _validate_finite("final_action", final_action)
         _log("[T08-A WRAPPER] final action composed", enabled=self.debug)
 
+        mean_abs_delta = residual_action.abs().mean()
+        max_abs_delta = residual_action.abs().max()
+        saturation_ratio = (bounded_delta_action.abs() > 0.95).to(dtype=torch.float32).mean()
+
         obs, reward, terminated, truncated, extras = self.env.step(final_action)
+        self._append_residual_diagnostics(extras, mean_abs_delta, max_abs_delta, saturation_ratio, clip_fraction)
         _log("[T08-A WRAPPER] env step returned", enabled=self.debug)
         _log("[T08-A WRAPPER] env step done", enabled=self.debug)
         _log(
@@ -231,7 +275,12 @@ class ResidualActionWrapper(gym.Wrapper):
         self.last_base_action = base_action.detach().clone()
         self.last_delta_action = delta_action.detach().clone()
         self.last_bounded_delta_action = bounded_delta_action.detach().clone()
+        self.last_residual_action = residual_action.detach().clone()
         self.last_final_action = final_action.detach().clone()
+        self.last_mean_abs_delta = mean_abs_delta.detach().clone()
+        self.last_max_abs_delta = max_abs_delta.detach().clone()
+        self.last_saturation_ratio = saturation_ratio.detach().clone()
+        self.last_clip_fraction = clip_fraction.detach().clone()
         _log("[T08-A WRAPPER] step return start", enabled=self.debug)
         return obs, reward, terminated, truncated, extras
 
@@ -279,3 +328,18 @@ class ResidualActionWrapper(gym.Wrapper):
                     _mask_hidden_state(state, dones, self.num_envs)
             else:
                 _mask_hidden_state(hidden_state, dones, self.num_envs)
+
+    def _append_residual_diagnostics(
+        self,
+        extras: dict[str, Any],
+        mean_abs_delta: torch.Tensor,
+        max_abs_delta: torch.Tensor,
+        saturation_ratio: torch.Tensor,
+        clip_fraction: torch.Tensor,
+    ) -> None:
+        extras_key = "episode" if "episode" in extras else "log"
+        log_extras = extras.setdefault(extras_key, {})
+        log_extras["Residual/mean_abs_delta"] = mean_abs_delta.detach()
+        log_extras["Residual/max_abs_delta"] = max_abs_delta.detach()
+        log_extras["Residual/saturation_ratio"] = saturation_ratio.detach()
+        log_extras["Residual/clip_fraction"] = clip_fraction.detach()

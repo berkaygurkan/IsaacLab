@@ -68,6 +68,13 @@ T08-B smoke used `residual_scale = 0.1`, `final_action_clip = None`, and `reset_
 - Mean reward: `0.07`
 - Residual checkpoint pointer was written
 
+## Runtime Validation
+
+- T08.6 short, long, and resume smokes passed.
+- Residual diagnostics are available under `Residual/...`.
+- Stable residual checkpoint pointer verified.
+- See: `papers/conference/architecture/t08_residual_runtime_validation.md`
+
 ## Validation Sources
 
 - Runtime log: residual PPO iteration, smoke metrics, observation dimensions, and checkpoint pointer write
