@@ -1,0 +1,11 @@
+profile_id: P2_locked_joint
+family: joint_lock
+stage: T09-E0
+description: Planned P2 locked-joint profile scaffold for future gated fault-aware controlled evaluation.
+severity: placeholder
+target_joint_or_action: placeholder
+status: gated
+gated_by: P4_torque_degradation_pilot_passed
+execution_enabled: false
+runtime_fault_injection_implemented: false
+notes: Metadata only; P2 remains gated until the P4 pilot has a real pass record.

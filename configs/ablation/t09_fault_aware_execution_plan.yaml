@@ -1,0 +1,68 @@
+stage: T09-E0
+method: rlm1_stripped
+scope: conference_stage
+health_token: false
+uncertainty_channel: false
+safety_shield: false
+p1_p3_px_expansion: false
+default_seed: 0
+default_num_envs: 32
+default_episodes: 100
+default_policy_mode: deterministic
+dry_run_only: true
+execution_enabled: false
+p2_gated_until: P4_torque_degradation_pilot_passed
+residual_scale_policy: reuse_same_residual_checkpoint_eval_time_scale
+allowed_fault_profiles:
+  - profile_id: F0_none
+    family: none
+    status: active_for_preview
+    config_path: n/a
+    execution_enabled: false
+    notes: Healthy no-fault reference profile.
+  - profile_id: P4_torque_degradation
+    family: torque_scale
+    status: active_for_preview
+    config_path: configs/fault/torque_scale/p4_torque_degradation.yaml
+    execution_enabled: false
+    notes: First fault-aware pilot profile.
+  - profile_id: P2_locked_joint
+    family: joint_lock
+    status: gated
+    config_path: configs/fault/joint_lock/p2_locked_joint.yaml
+    gated_by: P4_torque_degradation_pilot_passed
+    execution_enabled: false
+    notes: Gated locked-joint profile; not preview-executable until P4 pilot passes.
+pilot_preview_rows:
+  - ablation_id: A0
+    role: zero_shot_healthy_ppo_fault_baseline
+    fault_profile: P4_torque_degradation
+    deployment_facing: true
+    online_learning: false
+  - ablation_id: A2
+    role: frozen_student_fault_evaluation
+    fault_profile: P4_torque_degradation
+    deployment_facing: true
+    online_learning: false
+  - ablation_id: A5
+    role: frozen_residual_policy_adaptation
+    fault_profile: P4_torque_degradation
+    deployment_facing: true
+    online_learning: false
+residual_scale_eval_rows:
+  - ablation_id: A3
+    checkpoint_reuse: same_residual_checkpoint
+    residual_scale_source: matrix
+  - ablation_id: A4
+    checkpoint_reuse: same_residual_checkpoint
+    residual_scale_source: matrix
+  - ablation_id: A5
+    checkpoint_reuse: same_residual_checkpoint
+    residual_scale_source: matrix
+  - ablation_id: A6
+    checkpoint_reuse: same_residual_checkpoint
+    residual_scale_source: matrix
+reference_only_rows:
+  - ablation_id: A1
+    role: privileged_reference_only
+    deployment_facing: false

@@ -1,0 +1,10 @@
+profile_id: P4_torque_degradation
+family: torque_scale
+stage: T09-E0
+description: Planned P4 torque degradation profile scaffold for future fault-aware controlled evaluation.
+severity: placeholder
+target_joint_or_action: placeholder
+status: active_for_preview
+execution_enabled: false
+runtime_fault_injection_implemented: false
+notes: Metadata only; no runtime fault injection behavior is implemented in T09-E0.

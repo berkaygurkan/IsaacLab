@@ -2,6 +2,8 @@
 
 This directory holds paper-facing architecture snapshots for completed conference-stage implementation tasks. Each snapshot should verify what the policy actually receives, what it outputs, and how the stage fits into the RLM1 stripped pipeline.
 
+For the paper-facing cross-reference scaffold, see `papers/conference/artifact_index.md`.
+
 ## Required Snapshot Fields
 
 Every completed stage snapshot must include:
