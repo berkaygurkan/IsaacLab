@@ -9,6 +9,7 @@ restricted to A0/A2/A5 with P4 only.
 from __future__ import annotations
 
 import argparse
+import csv
 import faulthandler
 import json
 import math
@@ -23,16 +24,42 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MATRIX = "configs/ablation/t09_conference_matrix.yaml"
 DEFAULT_PROFILE = "configs/fault/torque_scale/p4_torque_degradation.yaml"
 DEFAULT_RUN_ROOT = "runs/t09_p4_pilot"
+DEFAULT_DEMO_RUN_ROOT = "runs/t09_meeting_demo"
 ALLOWED_ROWS = ("A0", "A2", "A5")
 FAULT_PROFILE = "P4_torque_degradation"
+NO_FAULT_PROFILE = "F0_none"
 TARGET_JOINT = "front_left_foot"
 TORQUE_SCALE = 0.5
+DEMO_TORQUE_SCALES = (0.0, 0.2, 0.5)
 FAULT_ONSET_STEP = 50
 NUM_ENVS = 8
 ALLOWED_EPISODES = (2, 5)
 POLICY_MODE = "deterministic"
 DEBUG_STEP_LOG_LIMIT = 5
 DEPRECATED_MLP_KWARGS = ("stochastic", "init_noise_std", "noise_std_type", "state_dependent_std")
+DEMO_NOTE = "meeting demo only, not paper-grade result"
+STEP_CSV_FIELDS = (
+    "step",
+    "ablation_id",
+    "fault_profile",
+    "fault_active",
+    "fault_onset_step",
+    "target_joint",
+    "target_action_index",
+    "torque_scale",
+    "reward_mean",
+    "done_count",
+    "dones_any",
+    "no_nan_inf",
+    "base_lin_vel_x_mean",
+    "base_lin_vel_y_mean",
+    "base_ang_vel_z_mean",
+    "base_height_mean",
+    "action_l2_mean",
+    "action_abs_mean",
+    "target_action_abs_mean",
+    "target_action_abs_mean_after_scaling",
+)
 
 
 class PilotConfigError(ValueError):
@@ -164,6 +191,32 @@ def read_pointer(pointer_value: str) -> dict[str, Any]:
     }
 
 
+def read_demo_checkpoint_override(args: argparse.Namespace) -> dict[str, Any] | None:
+    if not args.checkpoint_path and not args.checkpoint_pointer:
+        return None
+    if args.checkpoint_path and args.checkpoint_pointer:
+        raise PilotConfigError("Use only one of --checkpoint_path or --checkpoint_pointer.")
+
+    if args.checkpoint_pointer:
+        pointer = read_pointer(args.checkpoint_pointer)
+        return {
+            "checkpoint_pointer": pointer["pointer_path"],
+            "checkpoint_path": pointer["resolved_checkpoint_path"],
+            "resolved_checkpoint_path": pointer["resolved_checkpoint_path"],
+            "checkpoint_exists": pointer["checkpoint_exists"],
+        }
+
+    checkpoint_path = resolve_repo_path(args.checkpoint_path)
+    if not checkpoint_path.is_file():
+        raise PilotConfigError(f"demo checkpoint file missing: {repo_relative(checkpoint_path)}")
+    return {
+        "checkpoint_pointer": None,
+        "checkpoint_path": str(args.checkpoint_path),
+        "resolved_checkpoint_path": repo_relative(checkpoint_path),
+        "checkpoint_exists": True,
+    }
+
+
 def load_rows(matrix_path: str) -> dict[str, dict[str, Any]]:
     matrix = load_flat_yaml(resolve_repo_path(matrix_path))
     rows = matrix["lists"].get("rows", [])
@@ -171,20 +224,34 @@ def load_rows(matrix_path: str) -> dict[str, dict[str, Any]]:
 
 
 def validate_args(args: argparse.Namespace) -> None:
-    runtime_flags = [args.execute_mapping_preflight, args.execute_pilot]
+    runtime_flags = [args.execute_mapping_preflight, args.execute_pilot, args.execute_demo]
+    checkpoint_override_requested = bool(args.checkpoint_path or args.checkpoint_pointer)
     if args.dry_run and any(runtime_flags):
         raise PilotConfigError("Use --dry_run without runtime execution flags.")
     if sum(1 for flag in runtime_flags if flag) > 1:
-        raise PilotConfigError("Use only one runtime flag: --execute_mapping_preflight or --execute_pilot.")
-    if args.fault_profile != FAULT_PROFILE:
+        raise PilotConfigError("Use only one runtime flag: --execute_mapping_preflight, --execute_pilot, or --execute_demo.")
+    if checkpoint_override_requested and not args.execute_demo:
+        raise PilotConfigError("--checkpoint_path/--checkpoint_pointer are supported only for --execute_demo.")
+    if args.checkpoint_path and args.checkpoint_pointer:
+        raise PilotConfigError("Use only one of --checkpoint_path or --checkpoint_pointer.")
+    if args.execute_demo:
+        if args.fault_profile not in {NO_FAULT_PROFILE, FAULT_PROFILE}:
+            raise PilotConfigError(f"T09-DEMO-A allows only --fault_profile {NO_FAULT_PROFILE} or {FAULT_PROFILE}.")
+    elif args.fault_profile != FAULT_PROFILE:
         raise PilotConfigError(f"T09-E1 allows only --fault_profile {FAULT_PROFILE}.")
     if args.target_joint != TARGET_JOINT:
         raise PilotConfigError(f"T09-E1 target_joint is fixed to {TARGET_JOINT}.")
-    if float(args.torque_scale) != TORQUE_SCALE:
+    if args.execute_demo:
+        if float(args.torque_scale) not in DEMO_TORQUE_SCALES:
+            raise PilotConfigError(f"T09 demo torque_scale must be one of {DEMO_TORQUE_SCALES}.")
+    elif float(args.torque_scale) != TORQUE_SCALE:
         raise PilotConfigError(f"T09-E1 torque_scale is fixed to {TORQUE_SCALE}.")
     if int(args.fault_onset_step) != FAULT_ONSET_STEP:
         raise PilotConfigError(f"T09-E1 fault_onset_step is fixed to {FAULT_ONSET_STEP}.")
-    if int(args.num_envs) != NUM_ENVS:
+    if args.execute_demo:
+        if int(args.num_envs) <= 0:
+            raise PilotConfigError("--num_envs must be > 0 for demo execution.")
+    elif int(args.num_envs) != NUM_ENVS:
         raise PilotConfigError(f"T09-E1 num_envs is fixed to {NUM_ENVS}.")
     if int(args.episodes) not in ALLOWED_EPISODES:
         raise PilotConfigError(f"T09-E1 episodes must be one of {ALLOWED_EPISODES}.")
@@ -202,6 +269,19 @@ def validate_args(args: argparse.Namespace) -> None:
         raise PilotConfigError(f"T09-E1 allows only rows {ALLOWED_ROWS}.")
     if args.execute_pilot and args.ablation_id is None:
         raise PilotConfigError("--execute_pilot requires --ablation_id.")
+    if args.execute_demo:
+        if args.ablation_id is None:
+            raise PilotConfigError("--execute_demo requires --ablation_id.")
+        if args.ablation_id not in {"A0", "A5"}:
+            raise PilotConfigError("T09-DEMO-A allows only --ablation_id A0 or A5.")
+        if args.log_step_csv and args.ablation_id != "A0":
+            raise PilotConfigError("--log_step_csv is supported only for A0 demo play.")
+        if checkpoint_override_requested and args.ablation_id != "A0":
+            raise PilotConfigError("Explicit demo checkpoint override is allowed only for A0.")
+        if args.fault_profile == NO_FAULT_PROFILE and args.ablation_id != "A0":
+            raise PilotConfigError("T09-DEMO-A allows F0_none only for A0.")
+        if args.demo_duration_steps <= 0:
+            raise PilotConfigError("--demo_duration_steps must be > 0.")
 
 
 def validate_p4_profile(profile_path: str) -> dict[str, Any]:
@@ -433,6 +513,8 @@ def build_parser(add_app_launcher_args: bool = False):
     parser.add_argument("--matrix", default=DEFAULT_MATRIX)
     parser.add_argument("--p4_profile", default=DEFAULT_PROFILE)
     parser.add_argument("--run_root", default=DEFAULT_RUN_ROOT)
+    parser.add_argument("--demo_run_root", default=DEFAULT_DEMO_RUN_ROOT)
+    parser.add_argument("--demo_note", default=DEMO_NOTE)
     parser.add_argument("--dry_run", action="store_true", help="Preview only. This is the default behavior.")
     parser.add_argument(
         "--execute_mapping_preflight",
@@ -440,6 +522,7 @@ def build_parser(add_app_launcher_args: bool = False):
         help="Construct the Ant env only to verify P4 action mapping. No checkpoints or env steps.",
     )
     parser.add_argument("--execute_pilot", action="store_true", help="Explicitly execute the guarded P4 pilot.")
+    parser.add_argument("--execute_demo", action="store_true", help="Execute the guarded T09 meeting-demo workflow.")
     parser.add_argument("--verify_profile", action="store_true", help="Validate the P4 profile scaffold.")
     parser.add_argument("--preview_mapping", action="store_true", help="Preview runtime action mapping checks.")
     parser.add_argument("--ablation_id", choices=ALLOWED_ROWS)
@@ -454,6 +537,12 @@ def build_parser(add_app_launcher_args: bool = False):
     parser.add_argument("--debug_timeout_sec", type=float, default=30.0)
     parser.add_argument("--max_debug_steps_per_episode", type=int, default=200)
     parser.add_argument("--telemetry_interval_steps", type=int, default=50)
+    parser.add_argument("--demo_gui", action="store_true", help="Meeting demo hint: do not force headless in helper script.")
+    parser.add_argument("--demo_duration_steps", type=int, default=400)
+    parser.add_argument("--demo_name", default=None)
+    parser.add_argument("--checkpoint_path", default=None, help="Demo only: exact checkpoint .pt path to load.")
+    parser.add_argument("--checkpoint_pointer", default=None, help="Demo only: checkpoint pointer YAML to resolve and load.")
+    parser.add_argument("--log_step_csv", action="store_true", help="Demo only: write per-step metrics CSV.")
     parser.add_argument(
         "--debug_skip_app_close_on_error",
         action="store_true",
@@ -476,7 +565,7 @@ def build_parser(add_app_launcher_args: bool = False):
 def parse_args() -> argparse.Namespace:
     pre_parser = build_parser(add_app_launcher_args=False)
     pre_args, _ = pre_parser.parse_known_args()
-    if pre_args.execute_mapping_preflight or pre_args.execute_pilot:
+    if pre_args.execute_mapping_preflight or pre_args.execute_pilot or pre_args.execute_demo:
         parser = build_parser(add_app_launcher_args=True)
         args, _ = parser.parse_known_args()
         return args
@@ -486,6 +575,85 @@ def parse_args() -> argparse.Namespace:
 
 def _write_json(path: Path, data: dict[str, Any]) -> None:
     path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _safe_name(value: str) -> str:
+    safe = []
+    for char in value:
+        if char.isalnum() or char in {"-", "_"}:
+            safe.append(char)
+        else:
+            safe.append("_")
+    return "".join(safe).strip("_") or "meeting_demo"
+
+
+def _demo_name(args: argparse.Namespace) -> str:
+    if args.demo_name:
+        return _safe_name(args.demo_name)
+    fault_suffix = "no_fault" if args.fault_profile == NO_FAULT_PROFILE else "P4"
+    return _safe_name(f"{args.ablation_id}_{fault_suffix}")
+
+
+def _env_action_dim(env: Any) -> int:
+    action_manager = getattr(env.unwrapped, "action_manager", None)
+    if action_manager is not None:
+        return int(action_manager.total_action_dim)
+    single_action_space = getattr(env.unwrapped, "single_action_space", None)
+    if single_action_space is not None:
+        import gymnasium as gym
+
+        return int(gym.spaces.flatdim(single_action_space))
+    return -1
+
+
+def _write_demo_summary(path: Path, values: dict[str, Any]) -> None:
+    lines = [
+        "# T09 Demo Summary",
+        "",
+        f"demo_name: {values.get('demo_name')}",
+        f"ablation_id: {values.get('ablation_id')}",
+        f"fault_profile: {values.get('fault_profile')}",
+        f"target_joint: {values.get('target_joint')}",
+        f"torque_scale: {values.get('torque_scale')}",
+        f"fault_onset_step: {values.get('fault_onset_step')}",
+        f"rollout_steps_executed: {values.get('rollout_steps_executed')}",
+        f"fault_window_reached: {values.get('fault_window_reached')}",
+        f"fault_applied: {values.get('fault_applied')}",
+        f"no_nan_inf: {values.get('no_nan_inf')}",
+        f"runtime_smoke_status: {values.get('runtime_smoke_status')}",
+        f"visual_stress_demo: {values.get('visual_stress_demo')}",
+        "",
+        "## Quantitative Metrics",
+        "",
+        f"pre_fault_reward_mean: {values.get('pre_fault_reward_mean')}",
+        f"post_fault_reward_mean: {values.get('post_fault_reward_mean')}",
+        f"pre_fault_base_lin_vel_x_mean: {values.get('pre_fault_base_lin_vel_x_mean')}",
+        f"post_fault_base_lin_vel_x_mean: {values.get('post_fault_base_lin_vel_x_mean')}",
+        f"pre_fault_action_l2_mean: {values.get('pre_fault_action_l2_mean')}",
+        f"post_fault_action_l2_mean: {values.get('post_fault_action_l2_mean')}",
+        f"total_done_count: {values.get('total_done_count')}",
+        "",
+        "## Checkpoints",
+        "",
+        f"checkpoint_path: {values.get('checkpoint_path')}",
+        f"checkpoint_pointer: {values.get('checkpoint_pointer')}",
+        f"resolved_checkpoint_path: {values.get('resolved_checkpoint_path')}",
+    ]
+    if values.get("student_checkpoint_pointer") is not None:
+        lines.extend(
+            [
+                f"student_checkpoint_pointer: {values.get('student_checkpoint_pointer')}",
+                f"resolved_student_checkpoint_path: {values.get('resolved_student_checkpoint_path')}",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            f"note: \"{values.get('note', DEMO_NOTE)}\"",
+            "",
+        ]
+    )
+    path.write_text("\n".join(lines), encoding="utf-8")
 
 
 def _tensor_to_float(value: Any) -> float | None:
@@ -501,6 +669,157 @@ def _tensor_to_float(value: Any) -> float | None:
         return float(value)
     except (TypeError, ValueError):
         return None
+
+
+def _csv_cell(value: Any) -> Any:
+    if value is None:
+        return "NA"
+    if isinstance(value, float) and (math.isnan(value) or math.isinf(value)):
+        return "NA"
+    return value
+
+
+def _term_width(term_dim: Any) -> int:
+    if isinstance(term_dim, int):
+        return term_dim
+    if isinstance(term_dim, (tuple, list)):
+        width = 1
+        for part in term_dim:
+            try:
+                width *= int(part)
+            except (TypeError, ValueError):
+                return 0
+        return width
+    return 0
+
+
+def _build_policy_obs_index_map(env: Any) -> tuple[dict[str, int], list[str]]:
+    obs_manager = getattr(env.unwrapped, "observation_manager", None)
+    if obs_manager is None:
+        return {}, [
+            "policy observation_manager unavailable; base velocity/height metrics will be NA",
+        ]
+
+    active_terms = getattr(obs_manager, "active_terms", None)
+    term_names = list(active_terms.get("policy", [])) if isinstance(active_terms, dict) else []
+    term_dims: list[Any] = []
+    group_term_dims = getattr(obs_manager, "group_obs_term_dim", None)
+    if isinstance(group_term_dims, dict):
+        term_dims = list(group_term_dims.get("policy", []))
+
+    if not term_names or not term_dims or len(term_names) != len(term_dims):
+        return {}, [
+            "policy observation term names/dimensions unavailable; base velocity/height metrics will be NA",
+        ]
+
+    aliases = {
+        "base_lin_vel": {
+            "base_lin_vel_x_mean": 0,
+            "base_lin_vel_y_mean": 1,
+        },
+        "base_ang_vel": {
+            "base_ang_vel_z_mean": 2,
+        },
+        "base_height": {
+            "base_height_mean": 0,
+        },
+        "root_height": {
+            "base_height_mean": 0,
+        },
+    }
+    index_map: dict[str, int] = {}
+    start = 0
+    for term_name, term_dim in zip(term_names, term_dims):
+        width = _term_width(term_dim)
+        for metric_name, offset in aliases.get(str(term_name), {}).items():
+            if offset < width:
+                index_map[metric_name] = start + offset
+        start += width
+
+    missing = [
+        metric_name
+        for metric_name in (
+            "base_lin_vel_x_mean",
+            "base_lin_vel_y_mean",
+            "base_ang_vel_z_mean",
+            "base_height_mean",
+        )
+        if metric_name not in index_map
+    ]
+    diagnostics = []
+    if missing:
+        diagnostics.append(
+            f"policy observation fields unavailable for {missing}; unavailable values will be NA"
+        )
+    return index_map, diagnostics
+
+
+def _policy_obs_tensor(obs: Any) -> Any | None:
+    candidate = obs
+    if hasattr(candidate, "get"):
+        try:
+            candidate = candidate.get("policy")
+        except Exception:
+            candidate = None
+    if candidate is None and hasattr(obs, "select"):
+        try:
+            selected = obs.select("policy")
+            candidate = selected.get("policy") if hasattr(selected, "get") else selected
+        except Exception:
+            candidate = None
+    if candidate is None:
+        return None
+    if hasattr(candidate, "detach"):
+        candidate = candidate.detach()
+    return candidate if hasattr(candidate, "shape") else None
+
+
+def _mean_at_index(tensor: Any, index: int) -> float | None:
+    try:
+        if len(tensor.shape) < 2 or index >= int(tensor.shape[-1]):
+            return None
+        return float(tensor[..., index].mean().item())
+    except Exception:
+        return None
+
+
+def _extract_obs_metrics(obs: Any, index_map: dict[str, int]) -> dict[str, float | None]:
+    policy_obs = _policy_obs_tensor(obs)
+    return {
+        metric_name: _mean_at_index(policy_obs, index) if policy_obs is not None else None
+        for metric_name, index in index_map.items()
+    }
+
+
+def _mean_numeric(values: list[Any]) -> float | None:
+    numeric_values = []
+    for value in values:
+        if value in (None, "NA", ""):
+            continue
+        try:
+            float_value = float(value)
+        except (TypeError, ValueError):
+            continue
+        if math.isfinite(float_value):
+            numeric_values.append(float_value)
+    if not numeric_values:
+        return None
+    return sum(numeric_values) / len(numeric_values)
+
+
+def _mean_for_rows(rows: list[dict[str, Any]], key: str, *, fault_active: bool | None = None) -> float | None:
+    selected_rows = rows
+    if fault_active is not None:
+        selected_rows = [row for row in rows if bool(row.get("fault_active")) == fault_active]
+    return _mean_numeric([row.get(key) for row in selected_rows])
+
+
+def _write_step_csv(path: Path, rows: list[dict[str, Any]]) -> None:
+    with path.open("w", encoding="utf-8", newline="") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=list(STEP_CSV_FIELDS))
+        writer.writeheader()
+        for row in rows:
+            writer.writerow({field: _csv_cell(row.get(field)) for field in STEP_CSV_FIELDS})
 
 
 def _timeout_for_env(extras: dict[str, Any], env_id: int) -> bool:
@@ -738,6 +1057,302 @@ def _execute_mapping_preflight_with_app(args: argparse.Namespace, rows: dict[str
     print("  no_env_step: True")
     print("  no_checkpoint_writes: True")
     print("  no_observed_result_updates: True")
+    return 0
+
+
+def _execute_demo(args: argparse.Namespace, rows: dict[str, dict[str, Any]]) -> int:
+    from isaaclab.app import AppLauncher
+
+    _debug("app launcher creation start")
+    app_launcher = AppLauncher(args)
+    _debug("app launcher creation done")
+    simulation_app = app_launcher.app
+
+    try:
+        return _execute_demo_with_app(args, rows)
+    finally:
+        _debug("app close start")
+        simulation_app.close()
+        _debug("app close done")
+
+
+def _execute_demo_with_app(args: argparse.Namespace, rows: dict[str, dict[str, Any]]) -> int:
+    import sys as _sys
+
+    trainers_dir = REPO_ROOT / "trainers"
+    if str(trainers_dir) not in _sys.path:
+        _sys.path.insert(0, str(trainers_dir))
+
+    import gymnasium as gym
+    import torch
+    from rsl_rl.runners import OnPolicyRunner
+
+    import isaaclab_tasks  # noqa: F401
+    from isaaclab.envs import DirectMARLEnv, multi_agent_to_single_agent
+    from isaaclab_tasks.manager_based.classic.ant.agents.rsl_rl_ppo_cfg import AntPPORunnerCfg
+    from isaaclab_tasks.manager_based.classic.ant.agents.rsl_rl_residual_ppo_cfg import AntResidualPPORunnerCfg
+    from isaaclab_tasks.utils import parse_env_cfg
+    from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
+
+    from p4_action_degradation_wrapper import P4ActionDegradationWrapper
+    from residual_action_wrapper import ResidualActionWrapper
+
+    row = rows[args.ablation_id]
+    task = str(row["task"])
+    checkpoint_override = read_demo_checkpoint_override(args)
+    if checkpoint_override is not None:
+        checkpoint_plan = {
+            "ablation_id": args.ablation_id,
+            "row_name": row["name"],
+            "row_role": row_role(args.ablation_id),
+            **checkpoint_override,
+        }
+    else:
+        checkpoint_plan = checkpoint_plan_for_row(args.ablation_id, rows)
+    demo_name = _demo_name(args)
+    run_dir = resolve_repo_path(args.demo_run_root) / (
+        f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{demo_name}"
+    )
+    run_dir.mkdir(parents=True, exist_ok=False)
+
+    print("[T09-DEMO-A] meeting demo start", flush=True)
+    print(f"  demo_name: {demo_name}", flush=True)
+    print(f"  ablation_id: {args.ablation_id}", flush=True)
+    print(f"  fault_profile: {args.fault_profile}", flush=True)
+    print(f"  checkpoint_path: {checkpoint_plan.get('checkpoint_path', checkpoint_plan['resolved_checkpoint_path'])}", flush=True)
+    print(f"  resolved_checkpoint_path: {checkpoint_plan['resolved_checkpoint_path']}", flush=True)
+    print(f"  note: {args.demo_note}", flush=True)
+
+    _debug("env config parse start")
+    env_cfg = parse_env_cfg(task, device=args.device, num_envs=args.num_envs)
+    env_cfg.seed = args.seed
+    _debug("env config parse done")
+    _debug("gym.make start")
+    env = gym.make(task, cfg=env_cfg)
+    _debug("gym.make done")
+    if isinstance(env.unwrapped, DirectMARLEnv):
+        env = multi_agent_to_single_agent(env)
+
+    p4_wrapper = None
+    target_action_index = None
+    joint_names: list[str] = []
+    action_dim = _env_action_dim(env)
+    if args.fault_profile == FAULT_PROFILE:
+        _debug("P4 wrapper creation start")
+        p4_wrapper = P4ActionDegradationWrapper(
+            env,
+            target_joint=args.target_joint,
+            torque_scale=args.torque_scale,
+            fault_onset_step=args.fault_onset_step,
+            expected_action_dim=8,
+            debug=True,
+        )
+        _debug("P4 wrapper creation done")
+        env = p4_wrapper
+        target_action_index = p4_wrapper.mapping.target_action_index
+        joint_names = list(p4_wrapper.mapping.joint_names)
+        action_dim = p4_wrapper.mapping.action_dim
+    else:
+        print("[T09-DEMO-A] no-fault demo path", flush=True)
+        print(f"  fault_profile: {NO_FAULT_PROFILE}", flush=True)
+        print("  fault_applied: False", flush=True)
+        print("  action_scaling_enabled: False", flush=True)
+
+    residual_wrapper = None
+    if args.ablation_id == "A5":
+        _debug("residual wrapper construction start")
+        residual_wrapper = ResidualActionWrapper(
+            env,
+            student_checkpoint_pointer=checkpoint_plan["student_checkpoint_pointer"],
+            residual_scale=float(checkpoint_plan["residual_scale"]),
+            final_action_clip=None,
+            device=env.unwrapped.device,
+            reset_hidden_on_done=False,
+            debug=False,
+        )
+        env = residual_wrapper
+        _debug("residual wrapper construction done")
+
+    _debug("env reset start")
+    vec_env = RslRlVecEnvWrapper(env, clip_actions=None)
+    obs, _ = vec_env.reset()
+    _debug("env reset done")
+    device = vec_env.device
+
+    _debug("policy model construction start")
+    if args.ablation_id == "A0":
+        agent_cfg_dict = _prepare_a0_agent_cfg_dict(AntPPORunnerCfg())
+    else:
+        agent_cfg_dict = _prepare_a5_agent_cfg_dict(AntResidualPPORunnerCfg())
+    runner = OnPolicyRunner(vec_env, agent_cfg_dict, log_dir=None, device=device)
+    _debug("policy model construction done")
+    _debug("policy checkpoint load start")
+    runner.load(str(resolve_repo_path(checkpoint_plan["resolved_checkpoint_path"])))
+    _debug("policy checkpoint load done")
+    policy = runner.get_inference_policy(device=device)
+
+    no_nan_inf = True
+    rollout_steps_executed = 0
+    step_rows: list[dict[str, Any]] = []
+    obs_index_map, obs_metric_diagnostics = _build_policy_obs_index_map(env)
+    for diagnostic in obs_metric_diagnostics:
+        print(f"[T09-DEMO-E DIAGNOSTIC] {diagnostic}", flush=True)
+    try:
+        for step in range(args.demo_duration_steps):
+            trace_step = step < DEBUG_STEP_LOG_LIMIT or (step + 1) % args.telemetry_interval_steps == 0
+            obs_metrics = _extract_obs_metrics(obs, obs_index_map)
+            if trace_step:
+                _debug(f"demo action inference start global_step={step}")
+            with torch.inference_mode():
+                actions = policy(obs)
+            if trace_step:
+                _debug(f"demo action inference done global_step={step}")
+            action_tensor = actions.detach()
+            action_l2_mean = float(torch.sqrt((action_tensor * action_tensor).sum(dim=1)).mean().item())
+            action_abs_mean = float(action_tensor.abs().mean().item())
+            target_action_abs_mean = None
+            if target_action_index is not None and action_tensor.ndim == 2:
+                target_action_abs_mean = float(action_tensor[:, target_action_index].abs().mean().item())
+            step_no_nan_inf = bool(torch.isfinite(actions).all())
+            if trace_step:
+                _debug(f"demo env.step start global_step={step}")
+            obs, rewards, _dones, _extras = vec_env.step(actions)
+            if trace_step:
+                _debug(f"demo env.step done global_step={step}")
+            step_no_nan_inf = step_no_nan_inf and bool(torch.isfinite(rewards).all())
+            no_nan_inf = no_nan_inf and step_no_nan_inf
+            rollout_steps_executed += 1
+            done_tensor = torch.as_tensor(_dones, device=device)
+            done_count = int(done_tensor.to(dtype=torch.int64).sum().item())
+            fault_active = bool(p4_wrapper and p4_wrapper.last_fault_applied)
+            target_action_abs_mean_after_scaling = None
+            if p4_wrapper is not None and p4_wrapper.last_action_after_fault is not None:
+                target_actions_after = p4_wrapper.last_action_after_fault[:, p4_wrapper.mapping.target_action_index]
+                target_action_abs_mean_after_scaling = float(target_actions_after.abs().mean().item())
+            step_row = {
+                "step": step,
+                "ablation_id": args.ablation_id,
+                "fault_profile": args.fault_profile,
+                "fault_active": fault_active,
+                "fault_onset_step": args.fault_onset_step,
+                "target_joint": args.target_joint if args.fault_profile == FAULT_PROFILE else None,
+                "target_action_index": target_action_index,
+                "torque_scale": args.torque_scale if args.fault_profile == FAULT_PROFILE else None,
+                "reward_mean": _tensor_to_float(rewards),
+                "done_count": done_count,
+                "dones_any": done_count > 0,
+                "no_nan_inf": step_no_nan_inf,
+                "base_lin_vel_x_mean": obs_metrics.get("base_lin_vel_x_mean"),
+                "base_lin_vel_y_mean": obs_metrics.get("base_lin_vel_y_mean"),
+                "base_ang_vel_z_mean": obs_metrics.get("base_ang_vel_z_mean"),
+                "base_height_mean": obs_metrics.get("base_height_mean"),
+                "action_l2_mean": action_l2_mean,
+                "action_abs_mean": action_abs_mean,
+                "target_action_abs_mean": target_action_abs_mean,
+                "target_action_abs_mean_after_scaling": target_action_abs_mean_after_scaling,
+            }
+            step_rows.append(step_row)
+            if rollout_steps_executed % args.telemetry_interval_steps == 0:
+                print("[T09-DEMO-A TELEMETRY]", flush=True)
+                print(f"  rollout_steps_executed: {rollout_steps_executed}", flush=True)
+                print(f"  fault_profile: {args.fault_profile}", flush=True)
+                print(f"  fault_window_reached: {bool(p4_wrapper and p4_wrapper.fault_applied)}", flush=True)
+                print(f"  reward_mean: {step_row['reward_mean']}", flush=True)
+                print(f"  action_l2_mean: {step_row['action_l2_mean']}", flush=True)
+                print(f"  no_nan_inf: {no_nan_inf}", flush=True)
+                print(f"  telemetry_interval_steps: {args.telemetry_interval_steps}", flush=True)
+    except Exception:
+        print("[T09-DEMO-A ERROR] demo rollout failed before clean summary", file=sys.stderr, flush=True)
+        traceback.print_exc(file=sys.stderr)
+        raise
+
+    fault_window_reached = bool(p4_wrapper and p4_wrapper.fault_applied)
+    if not no_nan_inf:
+        runtime_smoke_status = "fail_nonfinite"
+    elif rollout_steps_executed <= 0:
+        runtime_smoke_status = "fail_no_steps"
+    elif args.fault_profile == FAULT_PROFILE and not fault_window_reached:
+        runtime_smoke_status = "partial_fault_window_not_reached"
+    else:
+        runtime_smoke_status = "pass"
+
+    total_done_count = sum(int(row.get("done_count") or 0) for row in step_rows)
+    visual_stress_demo = bool(args.fault_profile == FAULT_PROFILE and float(args.torque_scale) < TORQUE_SCALE)
+    summary_metrics = {
+        "demo_name": demo_name,
+        "ablation_id": args.ablation_id,
+        "fault_profile": args.fault_profile,
+        "checkpoint_path": checkpoint_plan.get("checkpoint_path", checkpoint_plan["resolved_checkpoint_path"]),
+        "checkpoint_pointer": checkpoint_plan.get("checkpoint_pointer"),
+        "resolved_checkpoint_path": checkpoint_plan["resolved_checkpoint_path"],
+        "target_joint": args.target_joint if args.fault_profile == FAULT_PROFILE else None,
+        "target_action_index": target_action_index,
+        "torque_scale": args.torque_scale if args.fault_profile == FAULT_PROFILE else None,
+        "fault_onset_step": args.fault_onset_step,
+        "rollout_steps_executed": rollout_steps_executed,
+        "fault_window_reached": fault_window_reached,
+        "fault_applied": bool(p4_wrapper and p4_wrapper.fault_applied),
+        "no_nan_inf": no_nan_inf,
+        "runtime_smoke_status": runtime_smoke_status,
+        "pre_fault_reward_mean": _mean_for_rows(step_rows, "reward_mean", fault_active=False),
+        "post_fault_reward_mean": _mean_for_rows(step_rows, "reward_mean", fault_active=True),
+        "pre_fault_base_lin_vel_x_mean": _mean_for_rows(step_rows, "base_lin_vel_x_mean", fault_active=False),
+        "post_fault_base_lin_vel_x_mean": _mean_for_rows(step_rows, "base_lin_vel_x_mean", fault_active=True),
+        "pre_fault_action_l2_mean": _mean_for_rows(step_rows, "action_l2_mean", fault_active=False),
+        "post_fault_action_l2_mean": _mean_for_rows(step_rows, "action_l2_mean", fault_active=True),
+        "overall_reward_mean": _mean_for_rows(step_rows, "reward_mean"),
+        "overall_base_lin_vel_x_mean": _mean_for_rows(step_rows, "base_lin_vel_x_mean"),
+        "overall_action_l2_mean": _mean_for_rows(step_rows, "action_l2_mean"),
+        "total_done_count": total_done_count,
+        "visual_stress_demo": visual_stress_demo,
+        "step_metrics_csv": repo_relative(run_dir / "step_metrics.csv") if args.log_step_csv else None,
+        "summary_metrics_path": repo_relative(run_dir / "summary_metrics.json"),
+        "note": args.demo_note,
+    }
+    if args.log_step_csv:
+        _write_step_csv(run_dir / "step_metrics.csv", step_rows)
+    _write_json(run_dir / "summary_metrics.json", summary_metrics)
+
+    values = {
+        **checkpoint_plan,
+        **summary_metrics,
+        "demo_name": demo_name,
+        "ablation_id": args.ablation_id,
+        "fault_profile": args.fault_profile,
+        "target_joint": args.target_joint if args.fault_profile == FAULT_PROFILE else None,
+        "target_action_index": target_action_index,
+        "joint_names": joint_names,
+        "torque_scale": args.torque_scale if args.fault_profile == FAULT_PROFILE else None,
+        "fault_onset_step": args.fault_onset_step,
+        "rollout_steps_executed": rollout_steps_executed,
+        "fault_window_reached": fault_window_reached,
+        "fault_applied": bool(p4_wrapper and p4_wrapper.fault_applied),
+        "no_nan_inf": no_nan_inf,
+        "runtime_smoke_status": runtime_smoke_status,
+        "action_dim": action_dim,
+        "checkpoint_path": checkpoint_plan.get("checkpoint_path", checkpoint_plan["resolved_checkpoint_path"]),
+        "note": args.demo_note,
+    }
+    _write_demo_summary(run_dir / "demo_summary.md", values)
+
+    _debug("env close start")
+    vec_env.close()
+    _debug("env close done")
+    print("[T09-DEMO-A STATUS]", flush=True)
+    print(f"  demo_name: {demo_name}", flush=True)
+    print(f"  ablation_id: {args.ablation_id}", flush=True)
+    print(f"  fault_profile: {args.fault_profile}", flush=True)
+    print(f"  rollout_steps_executed: {rollout_steps_executed}", flush=True)
+    print(f"  fault_window_reached: {fault_window_reached}", flush=True)
+    print(f"  fault_applied: {bool(p4_wrapper and p4_wrapper.fault_applied)}", flush=True)
+    print(f"  no_nan_inf: {no_nan_inf}", flush=True)
+    print(f"  runtime_smoke_status: {runtime_smoke_status}", flush=True)
+    print(f"  summary_path: {repo_relative(run_dir / 'demo_summary.md')}", flush=True)
+    print(f"  summary_metrics_path: {repo_relative(run_dir / 'summary_metrics.json')}", flush=True)
+    if args.log_step_csv:
+        print(f"  step_metrics_path: {repo_relative(run_dir / 'step_metrics.csv')}", flush=True)
+    print(f"  visual_stress_demo: {visual_stress_demo}", flush=True)
+    print(f"  note: {args.demo_note}", flush=True)
     return 0
 
 
@@ -1169,11 +1784,12 @@ def main() -> int:
     traceback_timer_active = False
     try:
         validate_args(args)
-        if (args.execute_mapping_preflight or args.execute_pilot) and args.debug_timeout_sec > 0:
+        if (args.execute_mapping_preflight or args.execute_pilot or args.execute_demo) and args.debug_timeout_sec > 0:
             faulthandler.enable(file=sys.stderr)
             faulthandler.dump_traceback_later(args.debug_timeout_sec, repeat=True, file=sys.stderr)
             traceback_timer_active = True
-        validate_p4_profile(args.p4_profile)
+        if args.fault_profile == FAULT_PROFILE:
+            validate_p4_profile(args.p4_profile)
         rows = load_rows(args.matrix)
         if args.verify_profile:
             print("[T09-E1 PROFILE] P4_torque_degradation scaffold validated")
@@ -1181,6 +1797,8 @@ def main() -> int:
             print_mapping_preview(args)
         if args.execute_mapping_preflight:
             return _execute_mapping_preflight(args, rows)
+        if args.execute_demo:
+            return _execute_demo(args, rows)
         if not args.execute_pilot:
             print_preview(args, rows)
             print_no_runtime_summary()

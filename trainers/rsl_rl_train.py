@@ -157,6 +157,11 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument("--seed", type=int, default=seed)
     parser.add_argument("--experiment_name", default=None)
     parser.add_argument("--run_name", default=None)
+    parser.add_argument(
+        "--skip_checkpoint_pointer",
+        action="store_true",
+        help="Do not write/update repo checkpoint pointer YAML after training.",
+    )
     args, passthrough = parser.parse_known_args()
 
     identity_overridden = any(
@@ -200,6 +205,10 @@ def main() -> int:
     result = subprocess.run(command, cwd=REPO_ROOT)
     if result.returncode != 0:
         return result.returncode
+
+    if args.skip_checkpoint_pointer:
+        print("[INFO] Skipped checkpoint pointer update by request.")
+        return 0
 
     _write_checkpoint_pointer(
         stage=args.stage,
