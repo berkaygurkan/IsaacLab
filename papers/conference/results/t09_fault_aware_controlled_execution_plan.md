@@ -6,6 +6,8 @@ Scope: T09-E0 dry-run-only preflight scaffold; RLM1 stripped; conference-stage o
 
 T09-E0 prepares future fault-aware controlled evaluation without executing it. It defines evaluation intent, allowed fault profiles, row roles, checkpoint dependencies, and command previews. It does not run Isaac Sim, training, evaluation, runtime fault injection, checkpoint writes, metric parsing, or observed-result manifest updates.
 
+Checkpoint pointer interpretation and residual checkpoint promotion policy are frozen separately in `papers/conference/results/t09_evaluation_checkpoint_policy.md`.
+
 ## Fault Profiles
 
 | profile_id | profile_family | status | scaffold | notes |
