@@ -1,0 +1,12 @@
+stage: healthy_baseline
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-v0
+experiment_name: healthy_baseline__rlm1_stripped__canonical
+run_name: a0_canonical__seed0
+classification: paper_grade_candidate
+log_dir: logs/rsl_rl/healthy_baseline__rlm1_stripped__canonical/2026-06-05_21-42-13_a0_canonical__seed0
+checkpoint_path: logs/rsl_rl/healthy_baseline__rlm1_stripped__canonical/2026-06-05_21-42-13_a0_canonical__seed0/model_1999.pt
+frozen_at: 2026-06-05 21:53:49
+note: explicit T09 checkpoint freeze; latest_checkpoint.yaml was not modified

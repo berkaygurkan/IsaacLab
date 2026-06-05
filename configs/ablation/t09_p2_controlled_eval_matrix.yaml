@@ -1,0 +1,108 @@
+stage: T09-R2d
+method: rlm1_stripped
+scope: conference_stage_p2_single_joint_lock
+main_fault_profile: P2_locked_joint
+target_joint_default: front_left_foot
+fault_onset_step_default: 50
+locked_joint_mode: use_existing_local_p2_profile_semantics_when_runtime_runner_is_implemented
+health_token: false
+uncertainty_channel: false
+safety_shield: false
+notes: Controlled-evaluation scope matrix only; no training, evaluation, checkpoint write, or observed-result update is implied.
+rows:
+  - ablation_id: A0_F0
+    policy_row: A0
+    fault_profile: F0_none
+    task: Isaac-Ant-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml
+    target_joint: none
+    fault_onset_step: none
+    deployment_facing: true
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: checkpoint_ready_runtime_eval_deferred
+    notes: Healthy PPO canonical baseline under no fault.
+  - ablation_id: A0_P2
+    policy_row: A0
+    fault_profile: P2_locked_joint
+    task: Isaac-Ant-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml
+    target_joint: front_left_foot
+    fault_onset_step: 50
+    deployment_facing: true
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: checkpoint_ready_p2_runtime_eval_deferred
+    notes: Zero-shot healthy PPO baseline under P2 single joint lock.
+  - ablation_id: A2_F0
+    policy_row: A2
+    fault_profile: F0_none
+    task: Isaac-Ant-Student-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/student/none/seed0/canonical_checkpoint.yaml
+    target_joint: none
+    fault_onset_step: none
+    deployment_facing: true
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: blocked_until_a2_canonical
+    notes: Student no-residual evaluation under no fault; requires future P2-distilled canonical A2.
+  - ablation_id: A2_P2
+    policy_row: A2
+    fault_profile: P2_locked_joint
+    task: Isaac-Ant-Student-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/student/none/seed0/canonical_checkpoint.yaml
+    target_joint: front_left_foot
+    fault_onset_step: 50
+    deployment_facing: true
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: blocked_until_a2_canonical_and_p2_eval_runner
+    notes: Student no-residual evaluation under P2; no teacher or true fault state at runtime.
+  - ablation_id: A5_F0
+    policy_row: A5
+    fault_profile: F0_none
+    task: Isaac-Ant-Student-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/student/none/seed0/canonical_checkpoint.yaml,checkpoints/rlm1_stripped/residual/none/seed0/canonical_checkpoint.yaml
+    target_joint: none
+    fault_onset_step: none
+    deployment_facing: true
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: blocked_until_a2_and_a5_canonical
+    notes: Main residual method under no fault; residual checkpoint must be canonical, not smoke/dev.
+  - ablation_id: A5_P2
+    policy_row: A5
+    fault_profile: P2_locked_joint
+    task: Isaac-Ant-Student-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/student/none/seed0/canonical_checkpoint.yaml,checkpoints/rlm1_stripped/residual/none/seed0/canonical_checkpoint.yaml
+    target_joint: front_left_foot
+    fault_onset_step: 50
+    deployment_facing: true
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: blocked_until_a2_a5_canonical_and_p2_eval_runner
+    notes: Main residual method under P2 single joint lock.
+  - ablation_id: A7_F0
+    policy_row: A7
+    fault_profile: F0_none
+    task: Isaac-Ant-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml,checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml,checkpoints/rlm1_stripped/teacher_distilled_residual/none/seed0/canonical_checkpoint.yaml
+    target_joint: none
+    fault_onset_step: none
+    deployment_facing: true_only_if_runtime_has_no_privileged_teacher
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: optional_deferred
+    notes: Optional A7 no-fault row; not paper-main and not a replacement for A5.
+  - ablation_id: A7_P2
+    policy_row: A7
+    fault_profile: P2_locked_joint
+    task: Isaac-Ant-v0
+    checkpoint_dependency: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml,checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml,checkpoints/rlm1_stripped/teacher_distilled_residual/none/seed0/canonical_checkpoint.yaml
+    target_joint: front_left_foot
+    fault_onset_step: 50
+    deployment_facing: true_only_if_runtime_has_no_privileged_teacher
+    uses_teacher_policy_at_runtime: false
+    uses_true_fault_state_at_runtime: false
+    status: optional_deferred
+    notes: Optional A7 P2 row; residual target is teacher_action_under_P2 minus A0_action_under_P2.

@@ -272,14 +272,14 @@ def validate_args(args: argparse.Namespace) -> None:
     if args.execute_demo:
         if args.ablation_id is None:
             raise PilotConfigError("--execute_demo requires --ablation_id.")
-        if args.ablation_id not in {"A0", "A5"}:
-            raise PilotConfigError("T09-DEMO-A allows only --ablation_id A0 or A5.")
-        if args.log_step_csv and args.ablation_id != "A0":
-            raise PilotConfigError("--log_step_csv is supported only for A0 demo play.")
-        if checkpoint_override_requested and args.ablation_id != "A0":
-            raise PilotConfigError("Explicit demo checkpoint override is allowed only for A0.")
-        if args.fault_profile == NO_FAULT_PROFILE and args.ablation_id != "A0":
-            raise PilotConfigError("T09-DEMO-A allows F0_none only for A0.")
+        if args.ablation_id not in {"A0", "A2", "A5"}:
+            raise PilotConfigError("T09 demo allows only --ablation_id A0, A2, or A5.")
+        if args.log_step_csv and args.ablation_id not in {"A0", "A2"}:
+            raise PilotConfigError("--log_step_csv is supported only for A0/A2 demo play.")
+        if checkpoint_override_requested and args.ablation_id not in {"A0", "A2"}:
+            raise PilotConfigError("Explicit demo checkpoint override is allowed only for A0/A2.")
+        if args.fault_profile == NO_FAULT_PROFILE and args.ablation_id not in {"A0", "A2"}:
+            raise PilotConfigError("T09 demo allows F0_none only for A0/A2.")
         if args.demo_duration_steps <= 0:
             raise PilotConfigError("--demo_duration_steps must be > 0.")
 
@@ -791,6 +791,20 @@ def _extract_obs_metrics(obs: Any, index_map: dict[str, int]) -> dict[str, float
     }
 
 
+def _validate_student_demo_obs_surface(env: Any) -> None:
+    obs_manager = getattr(env.unwrapped, "observation_manager", None)
+    active_terms = getattr(obs_manager, "active_terms", None)
+    policy_terms = active_terms.get("policy", []) if isinstance(active_terms, dict) else []
+    forbidden_terms = {"teacher_policy", "true_fault_state"}
+    leaked_terms = sorted(forbidden_terms.intersection({str(term) for term in policy_terms}))
+    if leaked_terms:
+        raise ValueError(f"A2 demo policy observation must not expose privileged/fault terms: {leaked_terms}")
+    print("[T09-DEMO-F A2 OBS]", flush=True)
+    print(f"  policy_terms: {list(policy_terms) if policy_terms else 'unavailable'}", flush=True)
+    print("  teacher_policy_used: False", flush=True)
+    print("  true_fault_state_used: False", flush=True)
+
+
 def _mean_numeric(values: list[Any]) -> float | None:
     numeric_values = []
     for value in values:
@@ -1095,7 +1109,7 @@ def _execute_demo_with_app(args: argparse.Namespace, rows: dict[str, dict[str, A
     from isaaclab_rl.rsl_rl import RslRlVecEnvWrapper
 
     from p4_action_degradation_wrapper import P4ActionDegradationWrapper
-    from residual_action_wrapper import ResidualActionWrapper
+    from residual_action_wrapper import ResidualActionWrapper, _build_student_model
 
     row = rows[args.ablation_id]
     task = str(row["task"])
@@ -1159,6 +1173,7 @@ def _execute_demo_with_app(args: argparse.Namespace, rows: dict[str, dict[str, A
         print("  action_scaling_enabled: False", flush=True)
 
     residual_wrapper = None
+    student_model = None
     if args.ablation_id == "A5":
         _debug("residual wrapper construction start")
         residual_wrapper = ResidualActionWrapper(
@@ -1182,14 +1197,50 @@ def _execute_demo_with_app(args: argparse.Namespace, rows: dict[str, dict[str, A
     _debug("policy model construction start")
     if args.ablation_id == "A0":
         agent_cfg_dict = _prepare_a0_agent_cfg_dict(AntPPORunnerCfg())
-    else:
+        runner = OnPolicyRunner(vec_env, agent_cfg_dict, log_dir=None, device=device)
+        _debug("policy model construction done")
+        _debug("policy checkpoint load start")
+        runner.load(str(resolve_repo_path(checkpoint_plan["resolved_checkpoint_path"])))
+        _debug("policy checkpoint load done")
+        policy = runner.get_inference_policy(device=device)
+    elif args.ablation_id == "A5":
         agent_cfg_dict = _prepare_a5_agent_cfg_dict(AntResidualPPORunnerCfg())
-    runner = OnPolicyRunner(vec_env, agent_cfg_dict, log_dir=None, device=device)
-    _debug("policy model construction done")
-    _debug("policy checkpoint load start")
-    runner.load(str(resolve_repo_path(checkpoint_plan["resolved_checkpoint_path"])))
-    _debug("policy checkpoint load done")
-    policy = runner.get_inference_policy(device=device)
+        runner = OnPolicyRunner(vec_env, agent_cfg_dict, log_dir=None, device=device)
+        _debug("policy model construction done")
+        _debug("policy checkpoint load start")
+        runner.load(str(resolve_repo_path(checkpoint_plan["resolved_checkpoint_path"])))
+        _debug("policy checkpoint load done")
+        policy = runner.get_inference_policy(device=device)
+    else:
+        _validate_student_demo_obs_surface(vec_env)
+        policy_dim = vec_env.unwrapped.observation_manager.group_obs_dim["policy"][0]
+        action_dim_for_student = vec_env.unwrapped.action_manager.total_action_dim
+        student_model = _build_student_model(
+            num_envs=args.num_envs,
+            policy_dim=policy_dim,
+            action_dim=action_dim_for_student,
+            device=device,
+        )
+        _debug("policy model construction done")
+        _debug("policy checkpoint load start")
+        student_checkpoint = torch.load(
+            resolve_repo_path(checkpoint_plan["resolved_checkpoint_path"]),
+            weights_only=False,
+            map_location=device,
+        )
+        if "student_state_dict" not in student_checkpoint:
+            raise RuntimeError("A2 checkpoint missing student_state_dict.")
+        student_model.load_state_dict(student_checkpoint["student_state_dict"], strict=True)
+        student_model.eval()
+        _debug("policy checkpoint load done")
+        _debug("student hidden full reset start")
+        student_model.reset()
+        _debug("student hidden full reset done")
+
+        def policy(obs):
+            with torch.inference_mode():
+                student_obs = obs.select("policy") if hasattr(obs, "select") else obs
+                return student_model(student_obs, stochastic_output=False)
 
     no_nan_inf = True
     rollout_steps_executed = 0
@@ -1224,6 +1275,9 @@ def _execute_demo_with_app(args: argparse.Namespace, rows: dict[str, dict[str, A
             rollout_steps_executed += 1
             done_tensor = torch.as_tensor(_dones, device=device)
             done_count = int(done_tensor.to(dtype=torch.int64).sum().item())
+            done_ids = torch.nonzero(done_tensor > 0, as_tuple=False).flatten().tolist()
+            if student_model is not None and done_ids:
+                _safe_reset_student_hidden_on_done(student_model, done_tensor, args.num_envs, done_ids)
             fault_active = bool(p4_wrapper and p4_wrapper.last_fault_applied)
             target_action_abs_mean_after_scaling = None
             if p4_wrapper is not None and p4_wrapper.last_action_after_fault is not None:

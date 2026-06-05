@@ -12,6 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_TRAIN_CONFIG = REPO_ROOT / "configs" / "train" / "healthy_baseline.yaml"
 ISAACLAB_SH = REPO_ROOT / "isaaclab.sh"
 UPSTREAM_TRAIN = REPO_ROOT / "scripts" / "reinforcement_learning" / "rsl_rl" / "train.py"
+P2_TRAINING_WRAPPER = REPO_ROOT / "trainers" / "p2_joint_lock_training_wrapper.py"
 
 DEFAULT_STAGE = "healthy_baseline"
 DEFAULT_METHOD = "rlm1_stripped"
@@ -162,6 +163,16 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
         action="store_true",
         help="Do not write/update repo checkpoint pointer YAML after training.",
     )
+    parser.add_argument(
+        "--enable_p2_joint_lock",
+        action="store_true",
+        help="Route training through the repo-owned P2 single-joint-lock runtime hook.",
+    )
+    parser.add_argument("--p2_fault_config", default="configs/fault/joint_lock/p2_locked_joint.yaml")
+    parser.add_argument("--p2_target_joint", default="front_left_foot")
+    parser.add_argument("--p2_fault_onset_step", type=int, default=50)
+    parser.add_argument("--p2_expected_action_dim", type=int, default=8)
+    parser.add_argument("--p2_locked_action_value", type=float, default=0.0)
     args, passthrough = parser.parse_known_args()
 
     identity_overridden = any(
@@ -186,10 +197,10 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
 
 def main() -> int:
     args, passthrough = parse_args()
+    if args.enable_p2_joint_lock and not args.skip_checkpoint_pointer:
+        raise ValueError("P2 joint-lock training requires --skip_checkpoint_pointer; freeze canonical checkpoints manually.")
 
-    command = [
-        str(ISAACLAB_SH),
-        "-p",
+    upstream_args = [
         str(UPSTREAM_TRAIN.relative_to(REPO_ROOT)),
         "--task",
         args.task,
@@ -201,6 +212,38 @@ def main() -> int:
         args.run_name,
         *passthrough,
     ]
+    if args.enable_p2_joint_lock:
+        command = [
+            str(ISAACLAB_SH),
+            "-p",
+            str(P2_TRAINING_WRAPPER.relative_to(REPO_ROOT)),
+            "--p2_fault_config",
+            args.p2_fault_config,
+            "--p2_target_joint",
+            args.p2_target_joint,
+            "--p2_fault_onset_step",
+            str(args.p2_fault_onset_step),
+            "--p2_expected_action_dim",
+            str(args.p2_expected_action_dim),
+            "--p2_locked_action_value",
+            str(args.p2_locked_action_value),
+            "--p2_task",
+            args.task,
+            "--",
+            *upstream_args,
+        ]
+        print("[T09-R2f] P2 joint-lock runtime hook requested.")
+        print("  P2_runtime_hook_enabled: True")
+        print(f"  fault_profile: P2_locked_joint")
+        print(f"  target_joint: {args.p2_target_joint}")
+        print(f"  fault_onset_step: {args.p2_fault_onset_step}")
+        print("  semantics: action_override_zero_effort_surrogate")
+    else:
+        command = [
+            str(ISAACLAB_SH),
+            "-p",
+            *upstream_args,
+        ]
 
     result = subprocess.run(command, cwd=REPO_ROOT)
     if result.returncode != 0:

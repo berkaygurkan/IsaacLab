@@ -112,80 +112,119 @@ def _format_delta(f0_value: Any, p4_value: Any) -> str:
     return f"{p4_numeric - f0_numeric:.4f}"
 
 
-def build_markdown(f0_summary: dict[str, Any], p4_summary: dict[str, Any]) -> str:
+def _safe_name(value: str) -> str:
+    safe = []
+    for char in value:
+        if char.isalnum() or char in {"-", "_"}:
+            safe.append(char)
+        else:
+            safe.append("_")
+    return "".join(safe).strip("_") or "demo"
+
+
+def _default_label(summary: dict[str, Any]) -> str:
+    ablation_id = summary.get("ablation_id") or "demo"
+    fault_profile = summary.get("fault_profile") or "unknown_fault"
+    torque_scale = summary.get("torque_scale")
+    if torque_scale not in (None, "", "NA"):
+        return f"{ablation_id}_{fault_profile}_torque{torque_scale}"
+    return f"{ablation_id}_{fault_profile}"
+
+
+def build_markdown(
+    left_summary: dict[str, Any],
+    right_summary: dict[str, Any],
+    *,
+    left_label: str | None = None,
+    right_label: str | None = None,
+) -> str:
+    left_label = left_label or _default_label(left_summary)
+    right_label = right_label or _default_label(right_summary)
     rows = [
         (
             "rollout_steps",
-            _metric(f0_summary, "rollout_steps_executed"),
-            _metric(p4_summary, "rollout_steps_executed"),
+            _metric(left_summary, "rollout_steps_executed"),
+            _metric(right_summary, "rollout_steps_executed"),
         ),
         (
             "reward_mean",
-            _metric(f0_summary, "overall_reward_mean", "pre_fault_reward_mean"),
-            _metric(p4_summary, "overall_reward_mean"),
+            _metric(left_summary, "overall_reward_mean", "pre_fault_reward_mean"),
+            _metric(right_summary, "overall_reward_mean"),
         ),
         (
             "base_lin_vel_x_mean",
-            _metric(f0_summary, "overall_base_lin_vel_x_mean", "pre_fault_base_lin_vel_x_mean"),
-            _metric(p4_summary, "overall_base_lin_vel_x_mean"),
+            _metric(left_summary, "overall_base_lin_vel_x_mean", "pre_fault_base_lin_vel_x_mean"),
+            _metric(right_summary, "overall_base_lin_vel_x_mean"),
         ),
         (
             "action_l2_mean",
-            _metric(f0_summary, "overall_action_l2_mean", "pre_fault_action_l2_mean"),
-            _metric(p4_summary, "overall_action_l2_mean"),
+            _metric(left_summary, "overall_action_l2_mean", "pre_fault_action_l2_mean"),
+            _metric(right_summary, "overall_action_l2_mean"),
         ),
         (
             "done_count",
-            _metric(f0_summary, "total_done_count"),
-            _metric(p4_summary, "total_done_count"),
+            _metric(left_summary, "total_done_count"),
+            _metric(right_summary, "total_done_count"),
         ),
         (
             "fault_window_reached",
-            _metric(f0_summary, "fault_window_reached"),
-            _metric(p4_summary, "fault_window_reached"),
+            _metric(left_summary, "fault_window_reached"),
+            _metric(right_summary, "fault_window_reached"),
         ),
         (
             "runtime_smoke_status",
-            _metric(f0_summary, "runtime_smoke_status"),
-            _metric(p4_summary, "runtime_smoke_status"),
+            _metric(left_summary, "runtime_smoke_status"),
+            _metric(right_summary, "runtime_smoke_status"),
         ),
     ]
     lines = [
-        "# T09 A0 Demo Comparison",
+        "# T09 Demo Comparison",
         "",
         "Scope: advisor-demo interpretation only; not paper-grade evaluation.",
         "",
-        f"F0 run: `{f0_summary.get('run_dir')}`",
-        f"P4 run: `{p4_summary.get('run_dir')}`",
+        f"{left_label} run: `{left_summary.get('run_dir')}`",
+        f"{right_label} run: `{right_summary.get('run_dir')}`",
         "",
-        "| metric | F0_none | P4_torque_degradation | delta P4-F0 |",
+        f"| metric | {left_label} | {right_label} | delta right-left |",
         "| --- | ---: | ---: | ---: |",
     ]
-    for metric_name, f0_value, p4_value in rows:
+    for metric_name, left_value, right_value in rows:
         lines.append(
-            f"| {metric_name} | {_format_value(f0_value)} | {_format_value(p4_value)} | "
-            f"{_format_delta(f0_value, p4_value)} |"
+            f"| {metric_name} | {_format_value(left_value)} | {_format_value(right_value)} | "
+            f"{_format_delta(left_value, right_value)} |"
         )
     lines.extend(["", "Note: advisor demo only, not paper-grade result.", ""])
     return "\n".join(lines)
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Compare A0 F0/P4 T09 demo run folders.")
-    parser.add_argument("--f0_run_dir", required=True, help="Run folder for A0 F0_none demo.")
-    parser.add_argument("--p4_run_dir", required=True, help="Run folder for A0 P4_torque_degradation demo.")
+    parser = argparse.ArgumentParser(description="Compare two T09 demo run folders.")
+    parser.add_argument("--left_run_dir", help="Left/baseline demo run folder.")
+    parser.add_argument("--right_run_dir", help="Right/comparison demo run folder.")
+    parser.add_argument("--left_label", help="Optional left column label.")
+    parser.add_argument("--right_label", help="Optional right column label.")
+    parser.add_argument("--f0_run_dir", help="Backward-compatible alias for --left_run_dir.")
+    parser.add_argument("--p4_run_dir", help="Backward-compatible alias for --right_run_dir.")
     parser.add_argument("--output_root", default=DEFAULT_OUTPUT_ROOT)
     return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
-    f0_summary = read_run_summary(args.f0_run_dir)
-    p4_summary = read_run_summary(args.p4_run_dir)
-    markdown = build_markdown(f0_summary, p4_summary)
+    left_run_dir = args.left_run_dir or args.f0_run_dir
+    right_run_dir = args.right_run_dir or args.p4_run_dir
+    if not left_run_dir or not right_run_dir:
+        raise SystemExit("error: provide --left_run_dir/--right_run_dir or --f0_run_dir/--p4_run_dir.")
+    left_summary = read_run_summary(left_run_dir)
+    right_summary = read_run_summary(right_run_dir)
+    left_label = args.left_label or ("F0_none" if args.f0_run_dir and not args.left_run_dir else None)
+    right_label = args.right_label or ("P4_torque_degradation" if args.p4_run_dir and not args.right_run_dir else None)
+    markdown = build_markdown(left_summary, right_summary, left_label=left_label, right_label=right_label)
     output_root = resolve_repo_path(args.output_root)
     output_root.mkdir(parents=True, exist_ok=True)
-    output_path = output_root / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_A0_F0_vs_P4.md"
+    output_left = _safe_name(left_label or _default_label(left_summary))
+    output_right = _safe_name(right_label or _default_label(right_summary))
+    output_path = output_root / f"{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}_{output_left}_vs_{output_right}.md"
     output_path.write_text(markdown, encoding="utf-8")
     print(markdown)
     print(f"comparison_path: {repo_relative(output_path)}")

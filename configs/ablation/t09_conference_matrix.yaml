@@ -1,6 +1,8 @@
 stage: T09-A
 method: rlm1_stripped
 scope: conference_stage
+conference_main_fault_profile: P2_locked_joint
+conference_main_fault_note: P2 single joint lock is the main conference fault; P4 torque degradation is deferred to thesis extension and advisor-demo artifacts.
 health_token: false
 uncertainty_channel: false
 safety_shield: false
@@ -13,109 +15,179 @@ rows:
     method: rlm1_stripped
     task: Isaac-Ant-v0
     fault: none
+    train_fault_profile: F0_none
+    eval_fault_profiles: F0_none,P2_locked_joint
     seed: 0
     checkpoint_pointer: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/latest_checkpoint.yaml
     launcher_family: trainers/run_t05_healthy.sh
     first_mode: dry_run
     paper_table_role: Healthy PPO baseline
+    deployment_facing: true
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: false
-    notes: Healthy PPO checkpoint reference for paper baseline.
+    uses_true_fault_state_at_runtime: false
+    notes: Healthy PPO trains on F0 only and is evaluated on F0 and P2 as the zero-shot baseline.
   - ablation_id: A1
-    name: privileged_teacher_reference
-    purpose: Privileged teacher reference, not deployment-facing
-    stage: teacher
+    name: p2_fault_aware_privileged_teacher_reference
+    purpose: Future A1-F privileged teacher trained under P2 curriculum; not deployment-facing
+    stage: teacher_p2
     method: rlm1_stripped
     task: Isaac-Ant-Teacher-v0
-    fault: none
+    fault: P2_locked_joint
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: P2_locked_joint
     seed: 0
-    checkpoint_pointer: checkpoints/rlm1_stripped/teacher/none/seed0/latest_checkpoint.yaml
+    checkpoint_pointer: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
+    legacy_healthy_teacher_pointer: checkpoints/rlm1_stripped/teacher/none/seed0/latest_checkpoint.yaml
     launcher_family: trainers/run_t06_teacher.sh
     first_mode: dry_run
-    paper_table_role: Privileged teacher reference
+    paper_table_role: P2 privileged teacher reference
+    deployment_facing: false
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: true
-    notes: Privileged teacher reference row only, not a deployment policy.
+    uses_true_fault_state_at_runtime: true
+    notes: Current A1-H healthy teacher pretrain is not enough; future A1-F must be trained under P2 curriculum and remains reference-only.
   - ablation_id: A2
     name: student_distilled_no_residual
-    purpose: Distilled student without residual correction
+    purpose: Student distilled from future A1-F under P2 curriculum without residual correction
     stage: student
     method: rlm1_stripped
     task: Isaac-Ant-Student-v0
     fault: none
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: F0_none,P2_locked_joint
     seed: 0
     checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    teacher_checkpoint_dependency: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
     launcher_family: trainers/run_t07_distill.sh
     first_mode: dry_run
     paper_table_role: Student without residual
+    deployment_facing: true
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: false
-    notes: Distilled student checkpoint evaluated without residual correction.
+    uses_true_fault_state_at_runtime: false
+    notes: Future A2 must be distilled from P2-trained A1-F; no teacher or true fault state at runtime.
   - ablation_id: A3
     name: student_residual_scale_0_0
-    purpose: Frozen student through residual runtime path with residual contribution disabled
+    purpose: P2 residual runtime path with residual contribution disabled
     stage: residual
     method: rlm1_stripped
     task: Isaac-Ant-Student-v0
     fault: none
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: F0_none,P2_locked_joint
     seed: 0
     checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
     student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    teacher_checkpoint_dependency: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
     launcher_family: trainers/run_t08_residual_train.sh
     residual_scale: 0.0
     first_mode: dry_run
     paper_table_role: Residual runtime control
+    deployment_facing: true
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: false
-    notes: Residual wrapper path with zero residual contribution.
+    uses_true_fault_state_at_runtime: false
+    notes: Residual wrapper path under P2 evaluation with zero residual contribution.
   - ablation_id: A4
     name: student_residual_scale_0_05
-    purpose: Small residual correction sensitivity row
+    purpose: Small residual correction sensitivity row under P2
     stage: residual
     method: rlm1_stripped
     task: Isaac-Ant-Student-v0
     fault: none
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: F0_none,P2_locked_joint
     seed: 0
     checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
     student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    teacher_checkpoint_dependency: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
     launcher_family: trainers/run_t08_residual_train.sh
     residual_scale: 0.05
     first_mode: dry_run
     paper_table_role: Residual scale sensitivity
+    deployment_facing: true
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: false
-    notes: Small residual scale sensitivity row.
+    uses_true_fault_state_at_runtime: false
+    notes: Small residual scale sensitivity row for P2 controlled evaluation.
   - ablation_id: A5
     name: student_residual_scale_0_1
-    purpose: Default validated T08 residual baseline
+    purpose: Main default residual baseline under P2 controlled evaluation
     stage: residual
     method: rlm1_stripped
     task: Isaac-Ant-Student-v0
     fault: none
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: F0_none,P2_locked_joint
     seed: 0
     checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
     student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    teacher_checkpoint_dependency: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
     launcher_family: trainers/run_t08_residual_train.sh
     residual_scale: 0.1
     first_mode: dry_run
     paper_table_role: Default residual baseline
+    deployment_facing: true
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: false
-    notes: Default T08 residual baseline with validated residual scale.
+    uses_true_fault_state_at_runtime: false
+    notes: A5 remains the main residual method row; future canonical A5 must be trained and evaluated under P2 scope.
   - ablation_id: A6
     name: student_residual_scale_0_2
-    purpose: Larger residual correction sensitivity row
+    purpose: Larger residual correction sensitivity row under P2
     stage: residual
     method: rlm1_stripped
     task: Isaac-Ant-Student-v0
     fault: none
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: F0_none,P2_locked_joint
     seed: 0
     checkpoint_pointer: checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml
     student_checkpoint_pointer: checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml
+    teacher_checkpoint_dependency: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
     launcher_family: trainers/run_t08_residual_train.sh
     residual_scale: 0.2
     first_mode: dry_run
     paper_table_role: Residual scale sensitivity
+    deployment_facing: true
     uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
     uses_true_fault_state: false
-    notes: Larger residual scale sensitivity row.
+    uses_true_fault_state_at_runtime: false
+    notes: Larger residual scale sensitivity row for P2 controlled evaluation.
+  - ablation_id: A7
+    name: healthy_ppo_teacher_distilled_residual
+    purpose: Optional healthy PPO plus teacher-distilled residual ablation under P2
+    stage: optional_teacher_distilled_residual
+    method: rlm1_stripped
+    task: Isaac-Ant-v0
+    fault: none
+    train_fault_profile: P2_locked_joint
+    eval_fault_profiles: F0_none,P2_locked_joint
+    seed: 0
+    checkpoint_pointer: checkpoints/rlm1_stripped/teacher_distilled_residual/none/seed0/canonical_checkpoint.yaml
+    base_checkpoint_dependency: checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml
+    teacher_checkpoint_dependency: checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml
+    residual_target: teacher_action_under_P2_minus_A0_action_under_P2
+    residual_scale: 0.1
+    residual_scale_status: TBD_default_candidate
+    first_implementation_mode: deferred
+    first_mode: deferred
+    paper_table_role: Optional residual-distillation ablation
+    deployment_facing: true_only_if_runtime_has_no_privileged_teacher
+    uses_teacher_policy: false
+    uses_teacher_policy_at_runtime: false
+    uses_teacher_policy_during_training: true
+    uses_true_fault_state: false
+    uses_true_fault_state_at_runtime: false
+    uses_true_fault_state_during_training: teacher_side_only
+    classification: optional_deferred
+    controlled_eval_use: false
+    notes: Optional A7 variant for P2; healthy PPO base action plus residual distilled from future A1-F fault-aware teacher. Does not replace A5.

@@ -1,0 +1,35 @@
+stage: teacher_p2
+method: rlm1_stripped
+fault: P2_locked_joint
+seed: 0
+task: Isaac-Ant-Teacher-v0
+experiment_name: teacher_p2__rlm1_stripped__canonical
+run_name: a1f_p2_teacher_canonical__seed0
+
+fault_profile:
+  id: P2_locked_joint
+  config_path: configs/fault/joint_lock/p2_locked_joint.yaml
+  target_joint: front_left_foot
+  fault_onset_step: 50
+  runtime_curriculum_status: wired_as_repo_owned_action_override_surrogate
+  hook_path: trainers/p2_joint_lock_training_wrapper.py
+  semantics: action_override_zero_effort_surrogate
+  full_training_guardrail: require_preflight_passed_and_allow_full_training_flags
+
+privileged_teacher:
+  enabled: true
+  role: A1-F_P2_fault_aware_teacher
+  deployment_facing: false
+  terms:
+    - true_fault_state
+    - base_velocity
+    - contacts
+
+health_token:
+  enabled: false
+
+uncertainty_channel:
+  enabled: false
+
+safety_shield:
+  enabled: false

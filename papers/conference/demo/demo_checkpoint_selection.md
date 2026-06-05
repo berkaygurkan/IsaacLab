@@ -19,8 +19,11 @@ logs/rsl_rl/healthy_baseline__rlm1_stripped__demo/<timestamp>_healthy_demo__seed
 Current candidate checkpoint for the advisor demo:
 
 ```text
-logs/rsl_rl/healthy_baseline__rlm1_stripped__demo/2026-06-03_03-40-01_healthy_demo__seed0/model_999.pt
+logs/rsl_rl/healthy_baseline__rlm1_stripped__demo/2026-06-03_04-08-57_healthy_demo__seed0/model_1999.pt
 ```
+
+This is a demo-grade candidate only. It is not automatically promoted to a
+paper-grade or controlled-evaluation checkpoint.
 
 ## Video Pairing
 
