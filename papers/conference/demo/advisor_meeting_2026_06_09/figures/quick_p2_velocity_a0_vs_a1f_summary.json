@@ -1,0 +1,21 @@
+{
+  "a0_csv": "runs/t09_quick_p2_compare/A0_P2_quick_velocity/rollout_metrics.csv",
+  "a0_delta_vel_x_post_minus_pre": 7.059383477257976,
+  "a0_label": "A0 Healthy PPO",
+  "a0_mean_vel_x_post_fault": 8.47138593804197,
+  "a0_mean_vel_x_pre_fault": 1.4120024607839936,
+  "a0_velocity_column": "mean_vel_x",
+  "a1f_csv": "runs/t09_quick_p2_compare/A1F_random_P2_quick_velocity/rollout_metrics.csv",
+  "a1f_delta_vel_x_post_minus_pre": 53.36232291406801,
+  "a1f_label": "A1-F Privileged Teacher",
+  "a1f_mean_vel_x_post_fault": 54.29664793764128,
+  "a1f_mean_vel_x_pre_fault": 0.9343250235732721,
+  "a1f_velocity_column": "mean_vel_x",
+  "created_at": "2026-06-09T17:17:24",
+  "demo_scope": "quick_p2_velocity_sanity_plot",
+  "fault_onset_step": 50,
+  "not_paper_grade": true,
+  "note": "advisor-facing mini demo only; A1-F is privileged and not deployment-facing",
+  "pdf_path": "papers/conference/demo/advisor_meeting_2026_06_09/figures/quick_p2_velocity_a0_vs_a1f.pdf",
+  "png_path": "papers/conference/demo/advisor_meeting_2026_06_09/figures/quick_p2_velocity_a0_vs_a1f.png"
+}

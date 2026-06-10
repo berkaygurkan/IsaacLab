@@ -10,11 +10,33 @@ fault_profile:
   id: P2_locked_joint
   config_path: configs/fault/joint_lock/p2_locked_joint.yaml
   target_joint: front_left_foot
+  fault_onset_mode: random_uniform
+  fault_onset_step_min: 30
+  fault_onset_step_max: 150
+  per_env_onset_randomization: true
+  fixed_onset_validation_step: 50
   fault_onset_step: 50
-  runtime_curriculum_status: wired_as_repo_owned_action_override_surrogate
+  runtime_curriculum_status: wired_as_repo_owned_simulation_joint_state_override_lock
   hook_path: trainers/p2_joint_lock_training_wrapper.py
-  semantics: action_override_zero_effort_surrogate
+  semantics: position_hold_joint_lock
+  requested_semantics: simulation_joint_state_override_lock
+  implemented_semantics: simulation_joint_state_override_lock
+  runtime_preflight_status: pending
+  allow_fallback: false
+  fallback_semantics: pd_position_hold_surrogate
+  lock_capture: current_joint_position_at_onset
+  velocity_override: 0.0
+  reset_behavior: clear_lock_on_env_reset
+  simulation_state_override_api: robot.write_joint_state_to_sim
+  kp: 4.0
+  kd: 0.4
+  action_clip: 1.0
+  action_clip_policy: clip_raw_action_to_abs_limit_before_joint_effort_scale
   full_training_guardrail: require_preflight_passed_and_allow_full_training_flags
+  fixed_onset_validation_run:
+    run_name: a1f_p2_teacher_canonical__seed0
+    fault_onset_step: 50
+    classification: validation_run_not_final_random_onset_teacher
 
 privileged_teacher:
   enabled: true

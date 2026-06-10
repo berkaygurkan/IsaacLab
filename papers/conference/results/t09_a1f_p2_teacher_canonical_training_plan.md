@@ -8,9 +8,10 @@ manifest update, or paper-grade claim.
 
 T09-R2e prepares the canonical A1-F teacher workflow for the P2-only conference
 scope. A1-F is the future privileged teacher trained under `P2_locked_joint`,
-with default target joint `front_left_foot` and fault onset step `50`. The
-method remains RLM1 stripped, health token OFF, UQ inactive, and CBF inactive.
-P4 torque degradation is deferred to advisor-demo / thesis-extension material.
+with target joint `front_left_foot`. T09-R2i changes the intended final teacher
+from fixed-onset training to per-env random onset in steps 30-150. The method
+remains RLM1 stripped, health token OFF, UQ inactive, and CBF inactive. P4
+torque degradation is deferred to advisor-demo / thesis-extension material.
 
 ## A1-H Versus A1-F
 
@@ -40,7 +41,10 @@ task: Isaac-Ant-Teacher-v0
 method: rlm1_stripped
 fault_profile: P2_locked_joint
 target_joint: front_left_foot
-fault_onset_step: 50
+fault_onset_mode: random_uniform
+fault_onset_step_min: 30
+fault_onset_step_max: 150
+fixed_onset_validation_step: 50
 num_envs: 4096
 max_iterations: 2000
 seed: 0
@@ -50,21 +54,36 @@ run_name: a1f_p2_teacher_canonical__seed0
 
 The helper delegates to the existing T06 teacher path and passes
 `--skip_checkpoint_pointer`, so raw training does not overwrite stable pointer
-files. It accepts `--fault_config`, `--target_joint`, and
-`--fault_onset_step`, then routes training through the repo-owned P2 wrapper by
-passing `--enable_p2_joint_lock` to `trainers/rsl_rl_train.py`.
+files. It accepts `--fault_config`, `--target_joint`,
+`--fault_onset_mode`, `--fault_onset_step_min`,
+`--fault_onset_step_max`, and fixed `--fault_onset_step`, then routes training
+through the repo-owned P2 wrapper by passing `--enable_p2_joint_lock` to
+`trainers/rsl_rl_train.py`.
 
-The T09-R2f hook is wired as an action-override surrogate, not a true mechanical
-joint-position lock:
+The T09-R2h hook requests a simulation-level joint-state override lock. It is a
+runtime wrapper-level fault model, not a permanent URDF/DOF asset change:
 
 ```text
 trainers/p2_joint_lock_training_wrapper.py
-semantics: action_override_zero_effort_surrogate
+desired_semantics: position_hold_joint_lock
+requested_semantics: simulation_joint_state_override_lock
+API_path: robot.write_joint_state_to_sim(position, velocity, joint_ids=[target_joint_id], env_ids=active_env_ids)
+fallback_semantics: pd_position_hold_surrogate
+allow_fallback: false
 ```
 
 Before treating any run from this helper as canonical A1-F P2 evidence, run the
 P2 preflight and verify that the hook attaches, maps `front_left_foot`, and
-activates after onset.
+activates after onset. Preflight should also report
+`actual_semantics=simulation_joint_state_override_lock`, that joint state write
+API was found, `q_lock` was captured, post-step override was applied, target
+joint velocity was forced near zero, and fallback was not used.
+
+The completed fixed-onset step-50 run is a validation run. It should not be
+frozen as the final random-onset canonical teacher. The final A1-F teacher
+should use a single long random-onset run so the same target joint is locked at
+different gait phases and locked angles without training separate teachers per
+onset.
 
 Expected log root:
 
@@ -84,6 +103,12 @@ Runtime preflight, still no training:
 
 ```bash
 python evaluators/preflight_t09_p2_joint_lock.py --execute_preflight --headless
+```
+
+Fixed-onset debug remains available:
+
+```bash
+python evaluators/preflight_t09_p2_joint_lock.py --execute_preflight --headless --fault_onset_mode fixed --fault_onset_step 50
 ```
 
 Full training remains blocked unless the user passes both

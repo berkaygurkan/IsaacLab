@@ -4,11 +4,15 @@ scope: conference_stage_p2_single_joint_lock
 main_fault_profile: P2_locked_joint
 target_joint_default: front_left_foot
 fault_onset_step_default: 50
+training_fault_onset_mode_default: random_uniform
+training_fault_onset_step_min_default: 30
+training_fault_onset_step_max_default: 150
+evaluation_fault_onset_policy: fixed_onset_grid_deferred_for_controlled_comparison
 locked_joint_mode: use_existing_local_p2_profile_semantics_when_runtime_runner_is_implemented
 health_token: false
 uncertainty_channel: false
 safety_shield: false
-notes: Controlled-evaluation scope matrix only; no training, evaluation, checkpoint write, or observed-result update is implied.
+notes: Controlled-evaluation scope matrix only; no training, evaluation, checkpoint write, or observed-result update is implied. A1-F training should use one random-onset teacher, while later controlled evaluation may use fixed onset points/grid for comparison.
 rows:
   - ablation_id: A0_F0
     policy_row: A0

@@ -1,0 +1,132 @@
+{
+  "a0_checkpoint_path": "logs/rsl_rl/healthy_baseline_velocity__rlm1_stripped__none/2026-06-09_23-58-25_a0_velocity_candidate1000__seed0/model_999.pt",
+  "a0_task": "Isaac-Ant-Velocity-Flat-v0",
+  "action_dimension_check": {
+    "a0_action_observed": 8,
+    "a7_residual_target_observed": 8,
+    "action_expected": 8,
+    "passed": true,
+    "teacher_action_observed": 8
+  },
+  "array_shapes": {
+    "a0_action": [
+      200,
+      16,
+      8
+    ],
+    "a7_residual_target": [
+      200,
+      16,
+      8
+    ],
+    "done": [
+      200,
+      16
+    ],
+    "env_id": [
+      200,
+      16
+    ],
+    "episode_id": [
+      200,
+      16
+    ],
+    "initial_onset_step_by_env": [
+      16
+    ],
+    "p2_fault_active": [
+      200,
+      16
+    ],
+    "reward": [
+      200,
+      16
+    ],
+    "step_index": [
+      200,
+      16
+    ],
+    "student_obs": [
+      200,
+      16,
+      61
+    ],
+    "target_vx": [
+      200,
+      16
+    ],
+    "teacher_action": [
+      200,
+      16,
+      8
+    ],
+    "teacher_obs": [
+      200,
+      16,
+      62
+    ],
+    "velocity_x": [
+      200,
+      16
+    ],
+    "vx_error": [
+      200,
+      16
+    ]
+  },
+  "created_at": "2026-06-11T00:04:08",
+  "dataset_npz": "papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0_smoke/dataset.npz",
+  "dataset_scope": "t10_teacher_gap_p2_velocity_candidate_dataset",
+  "dataset_summary_md": "papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0_smoke/dataset_summary.md",
+  "dataset_tag": "t10_teacher_gap_p2_velocity_seed0_smoke",
+  "downstream_usage": {
+    "A2": "behavior distillation from student_obs to teacher_action",
+    "A5": "later student-gap residual after A2 distilled student exists",
+    "A7": "healthy PPO base plus teacher-gap residual target teacher_action - a0_action"
+  },
+  "fallback_allowed": false,
+  "fallback_used": false,
+  "fault_profile": "P2_locked_joint",
+  "guardrails": {
+    "a5_student_gap_target_deferred_until_a2_student_exists": true,
+    "no_checkpoint_modification": true,
+    "no_checkpoint_pointer_update": true,
+    "no_p2_wrapper_modification": true,
+    "no_task_config_modification": true,
+    "no_training": true,
+    "student_obs_must_not_use_true_fault_state": true,
+    "teacher_obs_may_include_true_fault_state_for_teacher_inference_audit_only": true
+  },
+  "metadata_json": "papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0_smoke/metadata.json",
+  "no_nan_inf_check": true,
+  "not_paper_grade_final": true,
+  "note": "candidate-level dataset, seed0/default scaffold unless overridden; not paper-grade final",
+  "num_envs": 16,
+  "num_steps": 200,
+  "observation_dimension_check": {
+    "student_obs_excludes_true_fault_state": true,
+    "student_obs_expected": 61,
+    "student_obs_observed": 61,
+    "student_obs_passed": true,
+    "teacher_obs_expected": 62,
+    "teacher_obs_observed": 62,
+    "teacher_obs_passed": true,
+    "true_fault_state_index_in_teacher_obs": 1
+  },
+  "onset_mode": "random_uniform",
+  "onset_step_max": 150,
+  "onset_step_min": 30,
+  "p2_fault_active_any": true,
+  "p2_fault_active_final_mean": 1.0,
+  "p2_fault_became_active": true,
+  "p2_simulation_override_applied_after_onset": true,
+  "seed": 0,
+  "selected_teacher_checkpoint_path": "logs/rsl_rl/teacher_p2_velocity_curriculum__rlm1_stripped__p2_locked_joint/2026-06-10_19-29-53_a1f_velocity_p2_onset_curriculum_seed0_curriculum_s3_target__seed0/model_2996.pt",
+  "selected_teacher_reason": "curriculum teacher has best post-fault velocity tracking",
+  "semantics": "simulation_joint_state_override_lock",
+  "target_joint": "front_left_foot",
+  "target_vx": 1.0,
+  "target_vx_source": "command_manager.base_velocity.command[:, 0]",
+  "teacher_task": "Isaac-Ant-Teacher-Velocity-Flat-v0",
+  "velocity_x_source": "robot.data.root_lin_vel_w"
+}

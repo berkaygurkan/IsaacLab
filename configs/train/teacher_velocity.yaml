@@ -1,0 +1,7 @@
+stage: teacher_velocity
+method: rlm1_stripped
+fault: none
+seed: 0
+task: Isaac-Ant-Teacher-Velocity-Flat-v0
+experiment_name: teacher_velocity__rlm1_stripped__none
+run_name: teacher_velocity__rlm1_stripped__none__seed0

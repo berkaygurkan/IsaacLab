@@ -1,11 +1,45 @@
 profile_id: P2_locked_joint
 family: joint_lock
-stage: T09-E0
-description: Planned P2 locked-joint profile scaffold for future gated fault-aware controlled evaluation.
-severity: placeholder
-target_joint_or_action: placeholder
-status: gated
-gated_by: P4_torque_degradation_pilot_passed
+stage: T09-R2i
+description: P2 single locked-joint conference fault profile using a repo-owned runtime simulation-state override scaffold.
+severity: single_joint_lock
+target_joint: front_left_foot
+target_joint_or_action: front_left_foot
+fault_onset_mode: random_uniform
+fault_onset_step_min: 30
+fault_onset_step_max: 150
+fixed_onset_validation_step: 50
+fault_onset_step: 50
+status: active_for_p2_preflight_and_guarded_smoke
 execution_enabled: false
-runtime_fault_injection_implemented: false
-notes: Metadata only; P2 remains gated until the P4 pilot has a real pass record.
+runtime_fault_injection_implemented: true_guarded_repo_owned_wrapper
+semantics: position_hold_joint_lock
+requested_semantics: simulation_joint_state_override_lock
+implemented_semantics: simulation_joint_state_override_lock
+runtime_preflight_status: pending
+allow_fallback: false
+fallback_semantics: pd_position_hold_surrogate
+lock_capture: current_joint_position_at_onset
+velocity_override: 0.0
+reset_behavior: clear_lock_on_env_reset
+random_onset:
+  enabled_for_final_a1f_teacher: true
+  mode: random_uniform
+  min_step: 30
+  max_step: 150
+  per_env_onset_randomization: true
+  resample_on_env_reset: true
+  purpose: vary gait phase and captured locked angle during one long teacher run
+simulation_state_override:
+  API_path: robot.write_joint_state_to_sim(position, velocity, joint_ids=[target_joint_id], env_ids=active_env_ids)
+  position_override: captured_q_lock_per_env
+  velocity_override: 0.0
+  application_timing: after_each_env_step_while_lock_active
+  permanent_asset_modification: false
+pd_surrogate:
+  kp: 4.0
+  kd: 0.4
+  effort_clip: derived_from_raw_action_clip_and_action_scale
+  action_clip: 1.0
+  action_clip_policy: clip_raw_action_to_abs_limit_before_joint_effort_scale
+notes: Preferred conference semantics are simulation-level joint-state override lock. The fixed-onset step-50 run is validation only; final A1-F teacher training should use per-env random_uniform onset in [30, 150]. PD position-hold is fallback only and is disabled by default for A1-F conference training.

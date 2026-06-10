@@ -103,11 +103,42 @@ bash evaluators/run_t09_demo_play_policy.sh --ablation_id A2 --demo_gui --log_st
 python evaluators/compare_t09_demo_runs.py --left_run_dir runs/t09_demo_play/<timestamp>_D1_A0_P4_torque0_2 --right_run_dir runs/t09_demo_play/<timestamp>_D3_A2_P4_torque0_2 --left_label A0_P4_stress --right_label A2_P4_stress
 ```
 
+## P2 Quick Checkpoint Sanity
+
+T09-R2j adds a P2-specific quick demo evaluator:
+
+```text
+evaluators/run_t09_p2_quick_demo_compare.py
+```
+
+This runner is for checkpoint sanity only. It accepts `F0_none` and
+`P2_locked_joint`; for P2 it attaches the same simulation-level joint-state
+override wrapper used by the A1-F training/preflight path. It does not update
+paper-grade manifests.
+
+A0 versus A1-F is not a fair deployment comparison because A1-F is a privileged
+teacher and may use teacher observations such as `true_fault_state`. Treat A1-F
+as a sanity/upper-bound reference only. The future fair deployment comparison is
+A0 versus A2 versus A5.
+
+A0 P2 quick sanity:
+
+```bash
+python evaluators/run_t09_p2_quick_demo_compare.py --execute_demo --headless --policy_label A0_P2_quick --task Isaac-Ant-v0 --checkpoint_path logs/rsl_rl/healthy_baseline__rlm1_stripped__canonical/2026-06-05_21-42-13_a0_canonical__seed0/model_1999.pt --fault_profile P2_locked_joint --target_joint front_left_foot --fault_onset_step 50 --num_envs 64 --num_steps 1000 --output_dir runs/t09_quick_p2_compare/A0_P2_quick
+```
+
+A1-F random-onset teacher P2 quick sanity:
+
+```bash
+python evaluators/run_t09_p2_quick_demo_compare.py --execute_demo --headless --policy_label A1F_random_P2_quick --task Isaac-Ant-Teacher-v0 --checkpoint_path logs/rsl_rl/teacher_p2_random_onset__rlm1_stripped__canonical/2026-06-09_15-30-02_a1f_p2_teacher_random_onset_canonical__seed0/model_1999.pt --fault_profile P2_locked_joint --target_joint front_left_foot --fault_onset_step 50 --num_envs 64 --num_steps 1000 --output_dir runs/t09_quick_p2_compare/A1F_random_P2_quick
+```
+
 ## Guardrails
 
 - No P4 fault is applied during A0 training.
 - P4 playback remains advisor-demo / thesis-extension material only.
-- P2 single joint lock is the future conference fault scope, but no P2 demo or evaluation is added here.
+- P2 quick comparison is sanity/demo only and not paper-grade evaluation.
+- A1-F is privileged and not deployment-facing; A0-vs-A1-F is not a fair deployment comparison.
 - No checkpoint pointer is updated by the demo-training helper.
 - Demo play uses an exact selected checkpoint path and does not update stable checkpoint pointers.
 - No observed-result manifest is updated.

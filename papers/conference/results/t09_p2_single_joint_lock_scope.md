@@ -4,7 +4,21 @@ Scope: RLM1 stripped conference-stage fault-scope decision; no training, evaluat
 
 ## Scope Decision
 
-T09-R2d pivots the conference fault scope to `P2_locked_joint`. The main conference controlled-evaluation fault is a single locked joint with default target joint `front_left_foot` and default `fault_onset_step: 50`. The local P2 scaffold remains the source of locked-joint profile semantics. T09-R2f wires the first repo-owned runtime hook for A1-F teacher training as an action-override surrogate. Runtime evaluation execution is still deferred until a guarded P2 evaluator is explicitly implemented.
+T09-R2d pivots the conference fault scope to `P2_locked_joint`. The main conference controlled-evaluation fault is a single locked joint with default target joint `front_left_foot` and default `fault_onset_step: 50`. The local P2 scaffold remains the source of locked-joint profile semantics. T09-R2h upgrades the repo-owned A1-F training hook from PD effort hold toward a simulation-level joint-state override that captures the target joint position at onset and writes that joint state back to simulation each step. Runtime evaluation execution is still deferred until a guarded P2 evaluator is explicitly implemented.
+
+T09-R2i keeps the target joint fixed but changes the intended long A1-F teacher
+training distribution from fixed onset to per-env random onset:
+
+```text
+fault_onset_mode: random_uniform
+fault_onset_step_min: 30
+fault_onset_step_max: 150
+```
+
+The fixed-onset step-50 teacher run is runtime-hook validation, not the final
+random-onset canonical teacher. The random-onset teacher should be one long run,
+not separate teachers per onset. Later controlled evaluation can still use fixed
+onset points or a fixed onset grid.
 
 This pivot is intended to simplify the paper story. A single joint lock is easier to describe, easier to align with teacher/student/residual training, and more clearly connected to recovery under a discrete actuator/joint failure than the earlier torque-scale demo path. The scope change does not claim that any policy is fault-tolerant yet.
 
@@ -62,21 +76,90 @@ The current A1-F training hook path is:
 trainers/p2_joint_lock_training_wrapper.py
 ```
 
-The semantics are:
+Desired conference semantics:
 
 ```text
-action_override_zero_effort_surrogate
+position_hold_joint_lock
 ```
 
-After onset, the selected action dimension is set to zero. This is not a true
-mechanical position-hold joint lock. The preflight command is:
+Requested conference training-hook semantics:
+
+```text
+simulation_joint_state_override_lock
+```
+
+Local API path found:
+
+```text
+robot.write_joint_state_to_sim(position, velocity, joint_ids=[target_joint_id], env_ids=active_env_ids)
+```
+
+At onset, the wrapper captures `q_lock` from the target joint for each env. After
+each environment step, it writes the selected joint position back to `q_lock` and
+sets selected joint velocity to `0.0`. This is a runtime simulation-state
+override fault model, not a permanent URDF/DOF asset modification.
+
+For long A1-F training, onset is sampled independently per env and resampled
+after env reset. This changes the gait phase and locked angle while preserving
+the same `front_left_foot` target joint.
+
+Fallback semantics, disabled by default for A1-F:
+
+```text
+pd_position_hold_surrogate
+```
+
+Zero-effort action masking is not acceptable as the main conference P2 fault.
+The preflight command is:
 
 ```bash
 python evaluators/preflight_t09_p2_joint_lock.py --execute_preflight --headless
 ```
 
-Full A1-F training remains blocked until this hook is verified and explicitly
+Full A1-F training remains blocked until this hook is verified with
+`actual_semantics=simulation_joint_state_override_lock` and explicitly
 acknowledged.
+
+## Quick Demo Sanity
+
+T09-R2j adds:
+
+```text
+evaluators/run_t09_p2_quick_demo_compare.py
+```
+
+This evaluator is a quick checkpoint sanity/demo runner only. It supports A0 on
+`Isaac-Ant-v0` and A1-F on `Isaac-Ant-Teacher-v0`, accepts only `F0_none` and
+`P2_locked_joint`, and writes `summary.json`, `rollout_metrics.csv`, and
+`command.txt` under `runs/t09_quick_p2_compare/`.
+
+A0 versus A1-F is not a fair deployment comparison because A1-F is a privileged
+teacher/reference row. It is useful only as a sanity/upper-bound check. The
+future fair deployment-facing comparison remains A0 versus A2 versus A5.
+
+T09-R2k extends this quick sanity runner with first-episode survival diagnostics:
+`survival_to_fault_onset_rate`, `failed_before_fault_count`,
+`reached_fault_count`, first-done-step summaries, and post-fault survival-step
+summaries. These fields are included to avoid over-reading mean reward or raw
+`P2/fault_applied` when a policy terminates before the configured onset. They
+remain demo/sanity diagnostics only and are not paper-grade faulted scenario
+metrics.
+
+T09-R2l adds forward-velocity logging and an offline A0-vs-A1-F velocity plotter
+for the first advisor-facing mini demo. The intended plot is mean forward
+velocity `vx` versus simulation step, with a vertical dashed line at
+`fault_onset_step=50`. This visualization is still quick sanity only; A1-F is
+privileged and not deployment-facing. The fair controlled comparison remains
+future A0 versus A2 versus A5.
+
+T09-R2m adds `controlled_single_rollout` for a cleaner advisor-facing trace
+around the fault onset. This mode uses a shared seed, a later onset such as
+`fault_onset_step=250`, and a representative-env or small-env-average velocity
+curve so the figure is less dominated by different nominal acceleration regimes.
+If a real target velocity command exists, it can be recorded and plotted; if the
+Ant task exposes no writable velocity command, `target_vx_available=false` is
+recorded and no command is fabricated. This remains a mini demo/sanity view, not
+a paper-grade controlled evaluation.
 
 ## Guardrails
 

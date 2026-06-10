@@ -171,8 +171,21 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument("--p2_fault_config", default="configs/fault/joint_lock/p2_locked_joint.yaml")
     parser.add_argument("--p2_target_joint", default="front_left_foot")
     parser.add_argument("--p2_fault_onset_step", type=int, default=50)
+    parser.add_argument("--p2_fault_onset_mode", default="fixed", choices=("fixed", "random_uniform"))
+    parser.add_argument("--p2_fault_onset_step_min", type=int, default=30)
+    parser.add_argument("--p2_fault_onset_step_max", type=int, default=150)
     parser.add_argument("--p2_expected_action_dim", type=int, default=8)
     parser.add_argument("--p2_locked_action_value", type=float, default=0.0)
+    parser.add_argument("--p2_kp", type=float, default=4.0)
+    parser.add_argument("--p2_kd", type=float, default=0.4)
+    parser.add_argument("--p2_action_clip", type=float, default=1.0)
+    parser.add_argument(
+        "--p2_requested_semantics",
+        default="simulation_joint_state_override_lock",
+        choices=("simulation_joint_state_override_lock", "pd_position_hold_surrogate"),
+    )
+    parser.add_argument("--p2_allow_fallback", action="store_true")
+    parser.add_argument("--p2_velocity_override", type=float, default=0.0)
     args, passthrough = parser.parse_known_args()
 
     identity_overridden = any(
@@ -223,21 +236,49 @@ def main() -> int:
             args.p2_target_joint,
             "--p2_fault_onset_step",
             str(args.p2_fault_onset_step),
+            "--p2_fault_onset_mode",
+            args.p2_fault_onset_mode,
+            "--p2_fault_onset_step_min",
+            str(args.p2_fault_onset_step_min),
+            "--p2_fault_onset_step_max",
+            str(args.p2_fault_onset_step_max),
             "--p2_expected_action_dim",
             str(args.p2_expected_action_dim),
             "--p2_locked_action_value",
             str(args.p2_locked_action_value),
+            "--p2_kp",
+            str(args.p2_kp),
+            "--p2_kd",
+            str(args.p2_kd),
+            "--p2_action_clip",
+            str(args.p2_action_clip),
+            "--p2_requested_semantics",
+            args.p2_requested_semantics,
+            "--p2_velocity_override",
+            str(args.p2_velocity_override),
             "--p2_task",
             args.task,
             "--",
             *upstream_args,
         ]
-        print("[T09-R2f] P2 joint-lock runtime hook requested.")
+        if args.p2_allow_fallback:
+            command.insert(command.index("--p2_task"), "--p2_allow_fallback")
+        print("[T09-R2i] P2 joint-lock runtime hook requested.")
         print("  P2_runtime_hook_enabled: True")
         print(f"  fault_profile: P2_locked_joint")
         print(f"  target_joint: {args.p2_target_joint}")
+        print(f"  P2_fault_onset_mode: {args.p2_fault_onset_mode}")
+        print(f"  P2_fault_onset_step_min: {args.p2_fault_onset_step_min}")
+        print(f"  P2_fault_onset_step_max: {args.p2_fault_onset_step_max}")
         print(f"  fault_onset_step: {args.p2_fault_onset_step}")
-        print("  semantics: action_override_zero_effort_surrogate")
+        print(f"  per_env_onset_randomization: {args.p2_fault_onset_mode == 'random_uniform'}")
+        print(f"  requested_semantics: {args.p2_requested_semantics}")
+        print("  fallback_semantics: pd_position_hold_surrogate")
+        print(f"  allow_fallback: {args.p2_allow_fallback}")
+        print(f"  velocity_override: {args.p2_velocity_override}")
+        print(f"  kp: {args.p2_kp}")
+        print(f"  kd: {args.p2_kd}")
+        print(f"  action_clip: {args.p2_action_clip}")
     else:
         command = [
             str(ISAACLAB_SH),

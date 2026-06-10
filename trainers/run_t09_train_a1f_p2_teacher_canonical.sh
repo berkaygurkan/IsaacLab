@@ -8,6 +8,15 @@ CONFIG="configs/train/teacher_p2_canonical.yaml"
 FAULT_CONFIG="configs/fault/joint_lock/p2_locked_joint.yaml"
 TARGET_JOINT="front_left_foot"
 FAULT_ONSET_STEP="50"
+FAULT_ONSET_MODE="random_uniform"
+FAULT_ONSET_STEP_MIN="30"
+FAULT_ONSET_STEP_MAX="150"
+P2_KP="4.0"
+P2_KD="0.4"
+P2_ACTION_CLIP="1.0"
+P2_REQUESTED_SEMANTICS="simulation_joint_state_override_lock"
+P2_ALLOW_FALLBACK=0
+P2_VELOCITY_OVERRIDE="0.0"
 NUM_ENVS="4096"
 MAX_ITERATIONS="2000"
 SEED="0"
@@ -22,7 +31,7 @@ EXTRA_ARGS=()
 
 show_help() {
     cat <<'EOF'
-T09-R2f A1-F P2 privileged teacher runtime-hook training helper.
+T09-R2i A1-F P2 privileged teacher runtime-hook training helper.
 
 Conference-stage checkpoint generation scaffold only. This helper prepares A1-F
 teacher training metadata for the P2 single-joint-lock scope and delegates to
@@ -30,16 +39,28 @@ the existing T06 teacher training path with stable checkpoint pointer updates
 disabled by passing --skip_checkpoint_pointer.
 
 Important:
-  The current repo-owned PPO launcher wires P2 through an action-override
-  surrogate hook, not a true mechanical position-hold joint lock. Do not treat
-  a raw run as canonical A1-F P2 evidence until preflight passes and the
-  selected checkpoint is explicitly frozen.
+  The repo-owned PPO launcher now requests a simulation-level joint-state
+  override lock. It fails fast if that API is unavailable unless
+  --p2_allow_fallback is explicitly passed. Do not treat a raw run as canonical
+  A1-F P2 evidence until preflight passes and the selected checkpoint is
+  explicitly frozen.
 
 Options:
   --config PATH              Default: configs/train/teacher_p2_canonical.yaml
   --fault_config PATH        Default: configs/fault/joint_lock/p2_locked_joint.yaml
   --target_joint NAME        Default: front_left_foot
-  --fault_onset_step N       Default: 50
+  --fault_onset_step N       Default: 50; used when --fault_onset_mode fixed
+  --fault_onset_mode MODE    Default: random_uniform; choices: fixed, random_uniform
+  --fault_onset_step_min N   Default: 30 for random_uniform
+  --fault_onset_step_max N   Default: 150 for random_uniform
+  --p2_kp FLOAT              Default: 4.0
+  --p2_kd FLOAT              Default: 0.4
+  --p2_action_clip FLOAT     Default: 1.0
+  --p2_requested_semantics NAME
+                             Default: simulation_joint_state_override_lock
+  --p2_allow_fallback        Explicitly allow PD fallback if simulation override is unavailable
+  --p2_velocity_override FLOAT
+                             Default: 0.0
   --num_envs N               Default: 4096
   --max_iterations N         Default: 2000
   --seed N                   Default: 0
@@ -49,7 +70,7 @@ Options:
   --no-headless              Run with GUI
   --dry_run                  Print P2 hook command preview only; do not launch Isaac Sim
   --p2_preflight_passed      Required before one-step smoke or full training
-  --execute_one_step_smoke   Explicit tiny runtime smoke: num_envs=8, max_iterations=1
+  --execute_one_step_smoke   Explicit tiny runtime smoke: fixed onset step 1, num_envs=8, max_iterations=1
   --allow_full_training      Required for full canonical training after preflight passes
   --help, -h                 Show this help
 
@@ -106,6 +127,74 @@ while [[ $# -gt 0 ]]; do
             ;;
         --fault_onset_step=*)
             FAULT_ONSET_STEP="${1#*=}"
+            shift
+            ;;
+        --fault_onset_mode)
+            FAULT_ONSET_MODE="$2"
+            shift 2
+            ;;
+        --fault_onset_mode=*)
+            FAULT_ONSET_MODE="${1#*=}"
+            shift
+            ;;
+        --fault_onset_step_min)
+            FAULT_ONSET_STEP_MIN="$2"
+            shift 2
+            ;;
+        --fault_onset_step_min=*)
+            FAULT_ONSET_STEP_MIN="${1#*=}"
+            shift
+            ;;
+        --fault_onset_step_max)
+            FAULT_ONSET_STEP_MAX="$2"
+            shift 2
+            ;;
+        --fault_onset_step_max=*)
+            FAULT_ONSET_STEP_MAX="${1#*=}"
+            shift
+            ;;
+        --p2_kp)
+            P2_KP="$2"
+            shift 2
+            ;;
+        --p2_kp=*)
+            P2_KP="${1#*=}"
+            shift
+            ;;
+        --p2_kd)
+            P2_KD="$2"
+            shift 2
+            ;;
+        --p2_kd=*)
+            P2_KD="${1#*=}"
+            shift
+            ;;
+        --p2_action_clip)
+            P2_ACTION_CLIP="$2"
+            shift 2
+            ;;
+        --p2_action_clip=*)
+            P2_ACTION_CLIP="${1#*=}"
+            shift
+            ;;
+        --p2_requested_semantics)
+            P2_REQUESTED_SEMANTICS="$2"
+            shift 2
+            ;;
+        --p2_requested_semantics=*)
+            P2_REQUESTED_SEMANTICS="${1#*=}"
+            shift
+            ;;
+        --p2_allow_fallback)
+            P2_ALLOW_FALLBACK=1
+            shift
+            ;;
+        --p2_velocity_override)
+            P2_VELOCITY_OVERRIDE="$2"
+            shift 2
+            ;;
+        --p2_velocity_override=*)
+            P2_VELOCITY_OVERRIDE="${1#*=}"
             shift
             ;;
         --num_envs)
@@ -166,6 +255,8 @@ while [[ $# -gt 0 ]]; do
             ;;
         --execute_one_step_smoke)
             EXECUTE_ONE_STEP_SMOKE=1
+            FAULT_ONSET_MODE="fixed"
+            FAULT_ONSET_STEP="1"
             NUM_ENVS="8"
             MAX_ITERATIONS="1"
             shift
@@ -182,12 +273,12 @@ while [[ $# -gt 0 ]]; do
 done
 
 if [[ ! -f "${REPO_ROOT}/${CONFIG}" ]]; then
-    echo "[T09-R2f ERROR] config not found: ${CONFIG}" >&2
+    echo "[T09-R2i ERROR] config not found: ${CONFIG}" >&2
     exit 2
 fi
 
 if [[ ! -f "${REPO_ROOT}/${FAULT_CONFIG}" ]]; then
-    echo "[T09-R2f ERROR] fault_config not found: ${FAULT_CONFIG}" >&2
+    echo "[T09-R2i ERROR] fault_config not found: ${FAULT_CONFIG}" >&2
     exit 2
 fi
 
@@ -203,6 +294,14 @@ COMMAND=(
     --p2_fault_config "${FAULT_CONFIG}"
     --p2_target_joint "${TARGET_JOINT}"
     --p2_fault_onset_step "${FAULT_ONSET_STEP}"
+    --p2_fault_onset_mode "${FAULT_ONSET_MODE}"
+    --p2_fault_onset_step_min "${FAULT_ONSET_STEP_MIN}"
+    --p2_fault_onset_step_max "${FAULT_ONSET_STEP_MAX}"
+    --p2_kp "${P2_KP}"
+    --p2_kd "${P2_KD}"
+    --p2_action_clip "${P2_ACTION_CLIP}"
+    --p2_requested_semantics "${P2_REQUESTED_SEMANTICS}"
+    --p2_velocity_override "${P2_VELOCITY_OVERRIDE}"
     --config "${CONFIG}"
     --stage teacher_p2
     --method rlm1_stripped
@@ -215,6 +314,10 @@ COMMAND=(
     --max_iterations "${MAX_ITERATIONS}"
 )
 
+if [[ "${P2_ALLOW_FALLBACK}" == "1" ]]; then
+    COMMAND+=(--p2_allow_fallback)
+fi
+
 if [[ "${HEADLESS}" == "1" ]]; then
     COMMAND+=(--headless)
 fi
@@ -222,14 +325,33 @@ fi
 COMMAND+=("${EXTRA_ARGS[@]}")
 
 cd "${REPO_ROOT}"
-echo "[T09-R2f] A1-F P2 privileged teacher canonical training helper"
+echo "[T09-R2i] A1-F P2 privileged teacher canonical training helper"
 echo "  scope: A1-F P2 checkpoint generation scaffold; no A2/A5/A7 training"
 echo "  task: Isaac-Ant-Teacher-v0"
 echo "  method: rlm1_stripped"
 echo "  fault_profile: P2_locked_joint"
 echo "  fault_config: ${FAULT_CONFIG}"
 echo "  target_joint: ${TARGET_JOINT}"
-echo "  fault_onset_step: ${FAULT_ONSET_STEP}"
+echo "  P2_fault_onset_mode: ${FAULT_ONSET_MODE}"
+echo "  P2_fault_onset_step_min: ${FAULT_ONSET_STEP_MIN}"
+echo "  P2_fault_onset_step_max: ${FAULT_ONSET_STEP_MAX}"
+if [[ "${FAULT_ONSET_MODE}" == "fixed" ]]; then
+    echo "  P2_fixed_fault_onset_step: ${FAULT_ONSET_STEP}"
+else
+    echo "  P2_fixed_fault_onset_step: ignored_for_random_uniform_${FAULT_ONSET_STEP}"
+fi
+if [[ "${FAULT_ONSET_MODE}" == "random_uniform" ]]; then
+    echo "  per_env_onset_randomization: True"
+else
+    echo "  per_env_onset_randomization: False"
+fi
+echo "  requested_semantics: ${P2_REQUESTED_SEMANTICS}"
+echo "  fallback_semantics: pd_position_hold_surrogate"
+echo "  allow_fallback: ${P2_ALLOW_FALLBACK}"
+echo "  velocity_override: ${P2_VELOCITY_OVERRIDE}"
+echo "  P2_kp: ${P2_KP}"
+echo "  P2_kd: ${P2_KD}"
+echo "  P2_action_clip: ${P2_ACTION_CLIP}"
 echo "  privileged_teacher: true"
 echo "  deployment_facing: false"
 echo "  health_token: OFF"
@@ -241,30 +363,30 @@ echo "  checkpoint_pointer_update: disabled"
 echo "  canonical_freeze_pointer: checkpoints/rlm1_stripped/teacher_p2/none/seed${SEED}/canonical_checkpoint.yaml"
 echo "  canonical_freeze: manual via evaluators/freeze_t09_checkpoint.py"
 echo "  P2_runtime_hook_enabled: True"
-echo "  p2_runtime_curriculum_hook: repo-owned action-override surrogate"
-printf '[T09-R2f] command:'
+echo "  p2_runtime_curriculum_hook: repo-owned simulation joint-state override lock"
+printf '[T09-R2i] command:'
 printf ' %q' "${COMMAND[@]}"
 printf '\n'
 
 if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "[T09-R2f] dry_run: no Isaac Sim, no training, no checkpoint writes"
+    echo "[T09-R2i] dry_run: no Isaac Sim, no training, no checkpoint writes"
     exit 0
 fi
 
 if [[ "${P2_PREFLIGHT_PASSED}" != "1" ]]; then
-    echo "[T09-R2f ERROR] Refusing runtime execution until P2 preflight is explicitly acknowledged with --p2_preflight_passed." >&2
-    echo "[T09-R2f ERROR] Recommended first: python evaluators/preflight_t09_p2_joint_lock.py --execute_preflight --headless" >&2
+    echo "[T09-R2i ERROR] Refusing runtime execution until P2 preflight is explicitly acknowledged with --p2_preflight_passed." >&2
+    echo "[T09-R2i ERROR] Recommended first: python evaluators/preflight_t09_p2_joint_lock.py --execute_preflight --headless" >&2
     exit 3
 fi
 
 if [[ "${EXECUTE_ONE_STEP_SMOKE}" != "1" && "${ALLOW_FULL_TRAINING}" != "1" ]]; then
-    echo "[T09-R2f ERROR] Full A1-F training remains blocked." >&2
-    echo "[T09-R2f ERROR] Use --execute_one_step_smoke --p2_preflight_passed for a tiny hook smoke, or --allow_full_training --p2_preflight_passed for the real run." >&2
+    echo "[T09-R2i ERROR] Full A1-F training remains blocked." >&2
+    echo "[T09-R2i ERROR] Use --execute_one_step_smoke --p2_preflight_passed for a tiny hook smoke, or --allow_full_training --p2_preflight_passed for the real run." >&2
     exit 4
 fi
 
 if [[ "${EXECUTE_ONE_STEP_SMOKE}" == "1" ]]; then
-    echo "[T09-R2f] one-step smoke enabled: num_envs=${NUM_ENVS}, max_iterations=${MAX_ITERATIONS}"
+    echo "[T09-R2i] one-step smoke enabled: num_envs=${NUM_ENVS}, max_iterations=${MAX_ITERATIONS}"
 fi
 
 exec "${COMMAND[@]}"

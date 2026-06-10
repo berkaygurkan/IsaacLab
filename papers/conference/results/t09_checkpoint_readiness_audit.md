@@ -10,6 +10,8 @@ Generated: 2026-06-05 23:44:21
 - UQ inactive.
 - CBF inactive.
 - `P2_locked_joint` is the future conference fault scope.
+- The fixed-onset A1-F step-50 run is validation only; the final A1-F teacher
+  should be trained with per-env random onset in steps 30-150 and then frozen.
 - No P2 runtime execution or P3 expansion.
 - P4 advisor-demo artifacts remain separate from controlled-evaluation artifacts.
 
@@ -18,7 +20,7 @@ Generated: 2026-06-05 23:44:21
 | ablation_id | row_name | pointer_type | canonical_pointer_path | latest_pointer_path | pointer_path | resolved_checkpoint_path | checkpoint_exists | checkpoint_filename | log_dir | candidate_checkpoint_path | classification | controlled_eval_use | recommended_next_action |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | A0 | healthy PPO baseline | canonical | `checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml` | `checkpoints/rlm1_stripped/healthy_baseline/none/seed0/latest_checkpoint.yaml` | `checkpoints/rlm1_stripped/healthy_baseline/none/seed0/canonical_checkpoint.yaml` | `logs/rsl_rl/healthy_baseline__rlm1_stripped__canonical/2026-06-05_21-42-13_a0_canonical__seed0/model_1999.pt` | True | model_1999.pt | `logs/rsl_rl/healthy_baseline__rlm1_stripped__canonical/2026-06-05_21-42-13_a0_canonical__seed0` | `logs/rsl_rl/healthy_baseline__rlm1_stripped__demo/2026-06-03_04-08-57_healthy_demo__seed0/model_1999.pt` | paper_grade_candidate | True | A0 canonical checkpoint is ready for future F0/P2 controlled evaluation; keep evaluation blocked until A1-F/A2/A5 P2 readiness is addressed. |
-| A1 | A1-F P2 privileged teacher | latest | `checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml` | `checkpoints/rlm1_stripped/teacher_p2/none/seed0/latest_checkpoint.yaml` | `checkpoints/rlm1_stripped/teacher_p2/none/seed0/latest_checkpoint.yaml` | NA | False | NA | NA | NA | missing | False | Train/select/freeze A1-F under P2, then use checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml before A2 distillation. |
+| A1 | A1-F P2 privileged teacher | latest | `checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml` | `checkpoints/rlm1_stripped/teacher_p2/none/seed0/latest_checkpoint.yaml` | `checkpoints/rlm1_stripped/teacher_p2/none/seed0/latest_checkpoint.yaml` | NA | False | NA | NA | NA | missing | False | Train/select/freeze random-onset A1-F under P2; fixed-onset step-50 is validation only. |
 | A2 | student no residual | latest | `checkpoints/rlm1_stripped/student/none/seed0/canonical_checkpoint.yaml` | `checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml` | `checkpoints/rlm1_stripped/student/none/seed0/latest_checkpoint.yaml` | `logs/rsl_rl/student__rlm1_stripped__none/2026-05-28_00-18-04_student__rlm1_stripped__none__seed0/model_0.pt` | True | model_0.pt | `logs/rsl_rl/student__rlm1_stripped__none/2026-05-28_00-18-04_student__rlm1_stripped__none__seed0` | NA | smoke_or_dev_only | False | Distill a non-smoke A2 student from the P2-trained A1-F teacher, then freeze the exact path. |
 | A5 | student + residual baseline | latest | `checkpoints/rlm1_stripped/residual/none/seed0/canonical_checkpoint.yaml` | `checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml` | `checkpoints/rlm1_stripped/residual/none/seed0/latest_checkpoint.yaml` | `logs/rsl_rl/residual__rlm1_stripped__none/2026-06-01_15-46-39_residual__rlm1_stripped__none__seed0/model_0.pt` | True | model_0.pt | `logs/rsl_rl/residual__rlm1_stripped__none/2026-06-01_15-46-39_residual__rlm1_stripped__none__seed0` | NA | smoke_or_dev_only | False | Train/select canonical P2 student and residual checkpoints; do not use the current residual pointer as paper evidence. |
 | A7 | healthy PPO + teacher-distilled residual | latest | `checkpoints/rlm1_stripped/teacher_distilled_residual/none/seed0/canonical_checkpoint.yaml` | `checkpoints/rlm1_stripped/teacher_distilled_residual/none/seed0/latest_checkpoint.yaml` | `checkpoints/rlm1_stripped/teacher_distilled_residual/none/seed0/latest_checkpoint.yaml` | NA | False | NA | NA | NA | optional_deferred | False | Keep A7 deferred; do not train or evaluate unless explicitly promoted after A0 and P2 A1-F canonical dependencies exist. |
@@ -57,7 +59,7 @@ Generated: 2026-06-05 23:44:21
 - Base dependency pointer path: `NA`
 - Teacher dependency pointer path: `NA`
 - Legacy pointer path: `checkpoints/rlm1_stripped/teacher/none/seed0/latest_checkpoint.yaml`
-- Recommended next action: Train/select/freeze A1-F under P2, then use checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml before A2 distillation.
+- Recommended next action: Train/select/freeze random-onset A1-F under P2, then use checkpoints/rlm1_stripped/teacher_p2/none/seed0/canonical_checkpoint.yaml before A2 distillation. The fixed-onset step-50 run is validation only.
 
 ### A2 - student no residual
 
@@ -119,7 +121,7 @@ Generated: 2026-06-05 23:44:21
 - `model_0.pt` is treated as `smoke_or_dev_only` unless explicit evidence says otherwise.
 - The A0 demo checkpoint `model_1999.pt` is `demo_grade_candidate`, not `paper_grade_candidate`.
 - The current residual pointer remains `smoke_or_dev_only` unless a future T09 freeze step promotes it.
-- A1-H healthy teacher pretraining is not enough for A1-F; the future A1-F teacher must be P2-trained and explicitly frozen.
+- A1-H healthy teacher pretraining is not enough for A1-F; the future A1-F teacher must be P2-trained with the random-onset curriculum and explicitly frozen.
 - Future A2 and A5 controlled evaluation requires P2-aligned canonical checkpoints.
 - A7 is `optional_deferred`, with no checkpoint expected until explicitly implemented and promoted under P2.
 - No checkpoint is promoted automatically by this audit.
