@@ -46,7 +46,17 @@ from run_t10_velocity_p2_random_eval_compare import (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 TASK = "Isaac-Ant-Velocity-Flat-v0"
 FAULT_PROFILE = "P2_locked_joint"
-TARGET_JOINT = "front_left_foot"
+TARGET_JOINTS = (
+    "front_left_foot",
+    "front_right_foot",
+    "left_back_foot",
+    "right_back_foot",
+    "front_left_leg",
+    "front_right_leg",
+    "left_back_leg",
+    "right_back_leg",
+)
+DEFAULT_TARGET_JOINT = "front_left_foot"
 REQUESTED_SEMANTICS = "simulation_joint_state_override_lock"
 DEFAULT_ONSET_MODE = "random_uniform"
 DEFAULT_ONSET_STEP = 50
@@ -86,6 +96,7 @@ def build_parser(*, add_app_launcher_args: bool = False) -> argparse.ArgumentPar
     parser.add_argument("--fault_onset_mode", default=DEFAULT_ONSET_MODE, choices=(DEFAULT_ONSET_MODE,))
     parser.add_argument("--fault_onset_step_min", type=int, default=DEFAULT_ONSET_MIN)
     parser.add_argument("--fault_onset_step_max", type=int, default=DEFAULT_ONSET_MAX)
+    parser.add_argument("--target_joint", default=DEFAULT_TARGET_JOINT, choices=TARGET_JOINTS)
     parser.add_argument("--history_len", type=int, default=DEFAULT_HISTORY_LEN)
     if not add_app_launcher_args:
         parser.add_argument("--headless", action="store_true")
@@ -146,7 +157,7 @@ def print_preview(args: argparse.Namespace) -> None:
     print(f"  num_steps: {args.num_steps}")
     print(f"  seed: {args.seed}")
     print(f"  fault_profile: {FAULT_PROFILE}")
-    print(f"  target_joint: {TARGET_JOINT}")
+    print(f"  target_joint: {args.target_joint}")
     print(f"  semantics: {REQUESTED_SEMANTICS}")
     print("  fallback_allowed: False")
     print(f"  onset: {args.fault_onset_mode} [{args.fault_onset_step_min}, {args.fault_onset_step_max}]")
@@ -438,7 +449,7 @@ def execute_rollout(args: argparse.Namespace) -> int:
         print("[T10-A2-P2] P2 wrapper attach start", flush=True)
         p2_wrapper = P2JointLockActionMaskWrapper(
             env,
-            target_joint=TARGET_JOINT,
+            target_joint=args.target_joint,
             fault_onset_step=DEFAULT_ONSET_STEP,
             fault_onset_mode=args.fault_onset_mode,
             fault_onset_step_min=args.fault_onset_step_min,
@@ -630,7 +641,7 @@ def execute_rollout(args: argparse.Namespace) -> int:
             "fault_onset_mode": args.fault_onset_mode,
             "fault_onset_step_min": args.fault_onset_step_min,
             "fault_onset_step_max": args.fault_onset_step_max,
-            "target_joint": TARGET_JOINT,
+            "target_joint": args.target_joint,
             "semantics": REQUESTED_SEMANTICS,
             "fallback_allowed": False,
             "fallback_used": bool(fallback_used),
