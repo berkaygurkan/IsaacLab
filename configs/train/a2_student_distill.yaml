@@ -1,0 +1,26 @@
+stage: a2_student_distillation
+method: rlm1_stripped
+dataset_path: papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz
+input: student_obs
+target: teacher_action
+seed: 0
+batch_size: 4096
+smoke_epochs: 3
+train_validation_split:
+  train_fraction: 0.9
+  validation_fraction: 0.1
+expected_dims:
+  student_obs: 61
+  teacher_action: 8
+guardrails:
+  no_true_fault_state: true
+  no_teacher_obs_as_student_input: true
+  no_health_token: true
+  no_residual_in_a2: true
+  no_uq: true
+  no_cbf: true
+  no_p3_p4_expansion: true
+notes:
+  - A2 is deployment-facing supervised behavior distillation only.
+  - Student input is student_obs and target is teacher_action.
+  - This config does not update checkpoint pointers or define final paper-grade training.

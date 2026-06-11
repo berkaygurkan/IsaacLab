@@ -1,0 +1,106 @@
+{
+  "a0_action_used": true,
+  "a2_action_used": false,
+  "a5_action_used": false,
+  "a7_residual_target_present": true,
+  "a7_target_matches_teacher_minus_a0": true,
+  "a7_target_max_abs_consistency_error": 0.0,
+  "action_composition": "a_final = a0_action + alpha * residual_action",
+  "action_dim": 8,
+  "alpha_default_for_later_eval": 1.0,
+  "base_a0_action_mae_to_teacher": 0.4990176856517792,
+  "base_a0_action_mse_to_teacher": 0.38681110739707947,
+  "base_policy": "A0_healthy_velocity",
+  "base_policy_checkpoint": "logs/rsl_rl/healthy_baseline_velocity__rlm1_stripped__none/2026-06-09_23-58-25_a0_velocity_candidate1000__seed0/model_999.pt",
+  "batch_size": 4096,
+  "checkpoint_path": "papers/conference/results/t10_a7_a0_residual_distill_smoke/a7_a0_residual_smoke.pt",
+  "config_path": "configs/train/a7_a0_residual_distill.yaml",
+  "created_at": "2026-06-11T11:22:35",
+  "dataset_path": "papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz",
+  "device": "cpu",
+  "epoch_metrics": [
+    {
+      "epoch": 1.0,
+      "train_epoch_residual_mse": 0.05967194032849872,
+      "val_epoch_reconstructed_action_mae": 0.09396152371885466,
+      "val_epoch_reconstructed_action_mse": 0.020997030696220515,
+      "val_epoch_residual_mae": 0.09396152126053518,
+      "val_epoch_residual_mse": 0.020997030696220515
+    },
+    {
+      "epoch": 2.0,
+      "train_epoch_residual_mse": 0.015623156098556332,
+      "val_epoch_reconstructed_action_mae": 0.06701204468321642,
+      "val_epoch_reconstructed_action_mse": 0.010981554625517162,
+      "val_epoch_residual_mae": 0.06701204222489694,
+      "val_epoch_residual_mse": 0.010981554635119972
+    },
+    {
+      "epoch": 3.0,
+      "train_epoch_residual_mse": 0.009854121050014366,
+      "val_epoch_reconstructed_action_mae": 0.07080213225020367,
+      "val_epoch_reconstructed_action_mse": 0.01051740300084958,
+      "val_epoch_residual_mae": 0.07080213217338119,
+      "val_epoch_residual_mse": 0.01051740300084958
+    }
+  ],
+  "health_token_used": false,
+  "history_len": 16,
+  "input_dim": 61,
+  "input_key": "student_obs_history_plus_a0_action",
+  "max_epochs": 3,
+  "method": "rlm1_stripped",
+  "model_class": "A0HistoryResidualMLP",
+  "no_nan_inf": true,
+  "not_paper_grade_final": true,
+  "num_samples": 124145,
+  "output_dir": "papers/conference/results/t10_a7_a0_residual_distill_smoke",
+  "rejected_cross_episode_windows": 1935,
+  "rejected_done_crossing_windows": 1935,
+  "residual_dim": 8,
+  "residual_head_used": true,
+  "residual_input_mode": "history_plus_a0_action",
+  "residual_target_max_norm": 4.867947101593018,
+  "residual_target_mean_norm": 1.7456309795379639,
+  "seed": 0,
+  "smoke": true,
+  "source_a0_action_shape": [
+    1000,
+    128,
+    8
+  ],
+  "source_done_shape": [
+    1000,
+    128
+  ],
+  "source_episode_id_shape": [
+    1000,
+    128
+  ],
+  "source_student_obs_shape": [
+    1000,
+    128,
+    61
+  ],
+  "source_teacher_action_shape": [
+    1000,
+    128,
+    8
+  ],
+  "stage": "a7_a0_residual_distillation",
+  "target_key": "a7_residual_target",
+  "teacher_obs_used_as_input": false,
+  "total_candidate_windows": 126080,
+  "train_reconstructed_action_mae": 0.0707429715377188,
+  "train_reconstructed_action_mse": 0.010635331464192968,
+  "train_residual_mae": 0.07074297181085319,
+  "train_residual_mse": 0.010635331430051171,
+  "train_samples": 111731,
+  "true_fault_state_used": false,
+  "val_reconstructed_action_mae": 0.07080213225020367,
+  "val_reconstructed_action_mse": 0.01051740300084958,
+  "val_residual_mae": 0.07080213217338119,
+  "val_residual_mse": 0.01051740300084958,
+  "val_samples": 12414,
+  "valid_windows": 124145
+}

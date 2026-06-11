@@ -1,0 +1,61 @@
+{
+  "action_dim": 8,
+  "batch_size": 4096,
+  "checkpoint_path": "papers/conference/results/t10_a2_student_distill_smoke/a2_student_smoke.pt",
+  "config_path": "configs/train/a2_student_distill.yaml",
+  "created_at": "2026-06-11T00:23:24",
+  "dataset_path": "papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz",
+  "device": "cpu",
+  "epoch_metrics": [
+    {
+      "epoch": 1.0,
+      "train_epoch_mse": 0.05678624109261566,
+      "val_epoch_mae": 0.09806530952453613,
+      "val_epoch_mse": 0.0228273905813694
+    },
+    {
+      "epoch": 2.0,
+      "train_epoch_mse": 0.01724714047378964,
+      "val_epoch_mae": 0.07316314101219178,
+      "val_epoch_mse": 0.01455430518835783
+    },
+    {
+      "epoch": 3.0,
+      "train_epoch_mse": 0.013188644200563432,
+      "val_epoch_mae": 0.06609655886888505,
+      "val_epoch_mse": 0.012127118855714799
+    }
+  ],
+  "health_token_used": false,
+  "input_dim": 61,
+  "input_key": "student_obs",
+  "max_epochs": 3,
+  "method": "rlm1_stripped",
+  "no_nan_inf": true,
+  "not_paper_grade_final": true,
+  "num_samples": 128000,
+  "output_dir": "papers/conference/results/t10_a2_student_distill_smoke",
+  "residual_head_used": false,
+  "seed": 0,
+  "smoke": true,
+  "source_student_obs_shape": [
+    1000,
+    128,
+    61
+  ],
+  "source_teacher_action_shape": [
+    1000,
+    128,
+    8
+  ],
+  "stage": "a2_student_distillation",
+  "target_key": "teacher_action",
+  "teacher_obs_used_as_input": false,
+  "train_mae": 0.06566288858652115,
+  "train_mse": 0.012088560900754398,
+  "train_samples": 115200,
+  "true_fault_state_used": false,
+  "val_mae": 0.06609655886888505,
+  "val_mse": 0.012127118855714799,
+  "val_samples": 12800
+}

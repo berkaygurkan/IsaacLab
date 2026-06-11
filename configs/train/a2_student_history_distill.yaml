@@ -1,0 +1,37 @@
+stage: a2_student_history_distillation
+method: rlm1_stripped
+dataset_path: papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz
+input: student_obs_history
+target: teacher_action
+history_len: 16
+seed: 0
+batch_size: 4096
+smoke_epochs: 3
+train_validation_split:
+  train_fraction: 0.9
+  validation_fraction: 0.1
+model:
+  type: scaffold_flatten_history_mlp
+  note: Simple supervised scaffold, not final A2-history architecture.
+expected_dims:
+  student_obs: 61
+  teacher_action: 8
+history_window:
+  input_shape: [batch, history_len, 61]
+  target_shape: [batch, 8]
+  reject_cross_episode_windows: true
+  reject_done_crossing_windows: true
+guardrails:
+  no_true_fault_state: true
+  no_teacher_obs_as_student_input: true
+  no_health_token: true
+  no_residual_in_a2: true
+  no_a5_a7_training: true
+  no_uq: true
+  no_cbf: true
+  no_p3_p4_expansion: true
+notes:
+  - A2 history is deployment-facing supervised behavior distillation only.
+  - Student input is a window of student_obs and target is teacher_action at the current timestep.
+  - teacher_obs and true_fault_state are never used as student inputs.
+  - This config does not update checkpoint pointers or define final paper-grade training.

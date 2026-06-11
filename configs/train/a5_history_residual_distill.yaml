@@ -1,0 +1,45 @@
+stage: a5_history_residual_distillation
+method: rlm1_stripped
+base_policy: A2_history_H16
+base_policy_checkpoint: papers/conference/results/t10_a2_student_history_distill_full_h16_seed0/a2_student_history.pt
+dataset_path: papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz
+input: student_obs_history
+target: teacher_action - a2_history_action
+history_len: 16
+seed: 0
+batch_size: 4096
+smoke_epochs: 3
+train_validation_split:
+  train_fraction: 0.9
+  validation_fraction: 0.1
+residual_input_mode: history_plus_base_action
+model:
+  type: scaffold_flatten_history_plus_base_action_mlp
+  note: Simple supervised residual scaffold, not final A5 architecture.
+action_composition:
+  formula: a_final = a2_action + alpha * residual_action
+  alpha_default_for_later_eval: 1.0
+expected_dims:
+  student_obs: 61
+  teacher_action: 8
+  residual_action: 8
+history_window:
+  input_shape: [batch, history_len, 61]
+  target_shape: [batch, 8]
+  reject_cross_episode_windows: true
+  reject_done_crossing_windows: true
+guardrails:
+  no_true_fault_state: true
+  no_teacher_obs_as_residual_input: true
+  no_health_token: true
+  no_a0_action: true
+  no_a7_here: true
+  frozen_a2_history_base: true
+  no_uq: true
+  no_cbf: true
+  no_p3_p4_expansion: true
+notes:
+  - A5 residual distillation freezes the A2-history student and learns teacher_action minus a2_history_action.
+  - Student input is a window of student_obs; residual input additionally includes the frozen A2 base action.
+  - teacher_obs, true_fault_state, health token, and A0 action are never used.
+  - This config does not update checkpoint pointers or define final paper-grade training.

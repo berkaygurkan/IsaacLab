@@ -1,0 +1,1 @@
+trainers/train_t10_a2_student_distill.py --smoke --dataset_path papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz --config configs/train/a2_student_distill.yaml --output_dir papers/conference/results/t10_a2_student_distill_smoke --max_epochs 3 --batch_size 4096 --seed 0

@@ -1,0 +1,48 @@
+stage: a7_a0_residual_distillation
+method: rlm1_stripped
+base_policy: A0_healthy_velocity
+base_policy_checkpoint: logs/rsl_rl/healthy_baseline_velocity__rlm1_stripped__none/2026-06-09_23-58-25_a0_velocity_candidate1000__seed0/model_999.pt
+dataset_path: papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz
+input: student_obs_history + a0_action
+target: teacher_action - a0_action
+history_len: 16
+seed: 0
+batch_size: 4096
+smoke_epochs: 3
+train_validation_split:
+  train_fraction: 0.9
+  validation_fraction: 0.1
+residual_input_mode: history_plus_a0_action
+model:
+  type: scaffold_flatten_history_plus_a0_action_mlp
+  note: Simple supervised residual scaffold, not final A7 architecture.
+action_composition:
+  formula: a_final = a0_action + alpha * residual_action
+  alpha_default_for_later_eval: 1.0
+expected_dims:
+  student_obs: 61
+  a0_action: 8
+  teacher_action: 8
+  residual_action: 8
+history_window:
+  input_shape: [batch, history_len, 61]
+  target_shape: [batch, 8]
+  reject_cross_episode_windows: true
+  reject_done_crossing_windows: true
+guardrails:
+  no_true_fault_state: true
+  no_teacher_obs_as_residual_input: true
+  no_health_token: true
+  no_a2_action: true
+  no_a5_action: true
+  no_a7_isaac_eval_here: true
+  use_dataset_a0_action_as_base: true
+  no_uq: true
+  no_cbf: true
+  no_p3_p4_expansion: true
+notes:
+  - A7 residual distillation uses a frozen A0 healthy PPO base concept and learns teacher_action minus a0_action.
+  - This offline trainer uses dataset-provided a0_action as the base action; it does not load or train A0.
+  - Student input is a window of student_obs; residual input additionally includes the A0 base action.
+  - teacher_obs, true_fault_state, health token, A2 action, and A5 action are never used as inputs.
+  - This config does not launch Isaac Sim, run RL, update checkpoint pointers, or define final paper-grade training.
