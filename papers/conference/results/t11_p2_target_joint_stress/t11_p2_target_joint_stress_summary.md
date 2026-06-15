@@ -1,0 +1,15 @@
+# T11 P2 Target-Joint Stress Summary
+
+Candidate-level stress-test aggregation only; not paper-grade final.
+
+- aggregated successful runs: `7`
+
+| protocol | target_joint | policy | alpha | checkpoint | mean_vel_x_post_fault | mean_abs_vx_error_post_fault | mean_abs_yaw_error | timeout_rate | torso_height_failure_rate | residual_action_mean_norm | residual_action_max_norm | fallback_used | simulation_override_applied | p2_fault_became_active | no_nan_inf | output_dir |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| settled_p2 | front_right_foot | a2_history |  | papers/conference/results/t10_a2_student_history_distill_full_h16_seed0/a2_student_history.pt | 0.883735449 | 0.200183506 | 0.175728911 | 0.0378125 | 0.072546875 |  |  | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a2_history |
+| settled_p2 | front_right_foot | a5_history_residual | 0 | papers/conference/results/t10_a5_history_residual_distill_full_h16_seed0/a5_history_residual.pt | 0.883735449 | 0.200183506 | 0.175728911 | 0.0378125 | 0.072546875 | 0.0648073231 | 0.248566926 | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a5_alpha_000 |
+| settled_p2 | front_right_foot | a5_history_residual | 0.25 | papers/conference/results/t10_a5_history_residual_distill_full_h16_seed0/a5_history_residual.pt | 0.9226156 | 0.175326813 | 0.168635988 | 0.03684375 | 0.093640625 | 0.0643004595 | 0.24333477 | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a5_alpha_025 |
+| settled_p2 | front_right_foot | a5_history_residual | 0.5 | papers/conference/results/t10_a5_history_residual_distill_full_h16_seed0/a5_history_residual.pt | 0.908549002 | 0.190352963 | 0.166236405 | 0.0368359375 | 0.08578125 | 0.0640897506 | 0.24761796 | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a5_alpha_050 |
+| settled_p2 | front_right_foot | a7_a0_residual | 0 | papers/conference/results/t10_a7_a0_residual_distill_full_h16_seed0/a7_a0_residual.pt | 0.849056736 | 0.185376059 | 0.179569674 | 0.0384375 | 0.057265625 | 1.41869824 | 4.43008614 | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a7_alpha_000 |
+| settled_p2 | front_right_foot | a7_a0_residual | 0.01 | papers/conference/results/t10_a7_a0_residual_distill_full_h16_seed0/a7_a0_residual.pt | 0.827310082 | 0.200334481 | 0.18078325 | 0.0381015625 | 0.0640625 | 1.42218854 | 4.44270897 | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a7_alpha_001 |
+| settled_p2 | front_right_foot | a7_a0_residual | 0.025 | papers/conference/results/t10_a7_a0_residual_distill_full_h16_seed0/a7_a0_residual.pt | 0.806217468 | 0.215683827 | 0.181530861 | 0.0381171875 | 0.063390625 | 1.42770272 | 5.28090858 | false | 1 | true | true | papers/conference/results/t11_p2_target_joint_stress/settled_p2/front_right_foot/a7_alpha_0025 |

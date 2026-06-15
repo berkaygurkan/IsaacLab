@@ -1,0 +1,1104 @@
+{
+  "P2/fallback_used": 0.0,
+  "P2/fault_applied": 0.0546875,
+  "P2/onset_step_max": 300.0,
+  "P2/onset_step_mean": 300.0,
+  "P2/onset_step_min": 300.0,
+  "P2/per_env_onset_randomization": 1.0,
+  "P2/simulation_override_applied": 1.0,
+  "a0_checkpoint": "logs/rsl_rl/healthy_baseline_velocity__rlm1_stripped__none/2026-06-09_23-58-25_a0_velocity_candidate1000__seed0/model_999.pt",
+  "a7_checkpoint": "papers/conference/results/t10_a7_a0_residual_distill_full_h16_seed0/a7_a0_residual.pt",
+  "action_composition": "final_action = a0_action + alpha * residual_action",
+  "action_dim": 8,
+  "alpha": 0.1,
+  "base_action_mean_norm": 1.5055302961468697,
+  "created_at": "2026-06-15T10:24:17",
+  "device": "cuda",
+  "done_count": 128,
+  "eval_scope": "t10_a7_a0_residual_p2_eval",
+  "fallback_allowed": false,
+  "fallback_used": false,
+  "fault_onset_mode": "random_uniform",
+  "fault_onset_step_max": 300,
+  "fault_onset_step_min": 300,
+  "fault_profile": "P2_locked_joint",
+  "final_action_mean_norm": 1.4085256282687186,
+  "first_done_step_by_env": [
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    96,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    95,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    84,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    74,
+    960,
+    960,
+    61,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    75,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    960,
+    75
+  ],
+  "guardrails": {
+    "no_a2_action": true,
+    "no_a5_action": true,
+    "no_checkpoint_modification": true,
+    "no_checkpoint_pointer_update": true,
+    "no_health_token": true,
+    "no_p2_wrapper_modification": true,
+    "no_task_config_modification": true,
+    "no_teacher_obs": true,
+    "no_training": true,
+    "no_true_fault_state": true,
+    "residual_learning_active": true
+  },
+  "history_len": 16,
+  "history_reset_initialization": "repeat_first_observation",
+  "mean_abs_vx_error_post_fault": 0.8509316129368144,
+  "mean_abs_vx_error_pre_fault": 0.3906594375304155,
+  "mean_abs_yaw_error": 0.18960533018410206,
+  "mean_vel_x_post_fault": 0.14914038176043823,
+  "mean_vel_x_pre_fault": 0.6120565956377465,
+  "no_nan_inf": true,
+  "not_paper_grade_final": true,
+  "num_envs": 128,
+  "num_steps": 1000,
+  "observation_dim": 61,
+  "p2_fault_became_active": true,
+  "policy_kind": "a7_a0_residual",
+  "policy_metadata": {
+    "a0_policy_loaded": true,
+    "a0_runner_class": "OnPolicyRunner",
+    "a7_checkpoint_guardrails": {
+      "input": "student_obs_history_plus_a0_action",
+      "no_a2_action": true,
+      "no_a5_action": true,
+      "no_a7_isaac_eval": true,
+      "no_health_token": true,
+      "no_teacher_obs_input": true,
+      "no_true_fault_state": true,
+      "residual_head": true,
+      "target": "teacher_action_minus_a0_action",
+      "uses_a0_action": true
+    },
+    "a7_checkpoint_guardrails_ok": true,
+    "a7_checkpoint_history_len": 16,
+    "a7_checkpoint_metrics": {
+      "a0_action_used": true,
+      "a2_action_used": false,
+      "a5_action_used": false,
+      "a7_residual_target_present": true,
+      "a7_target_matches_teacher_minus_a0": true,
+      "a7_target_max_abs_consistency_error": 0.0,
+      "action_composition": "a_final = a0_action + alpha * residual_action",
+      "action_dim": 8,
+      "alpha_default_for_later_eval": 1.0,
+      "base_a0_action_mae_to_teacher": 0.4990176856517792,
+      "base_a0_action_mse_to_teacher": 0.38681110739707947,
+      "base_policy": "A0_healthy_velocity",
+      "base_policy_checkpoint": "logs/rsl_rl/healthy_baseline_velocity__rlm1_stripped__none/2026-06-09_23-58-25_a0_velocity_candidate1000__seed0/model_999.pt",
+      "batch_size": 4096,
+      "config_path": "configs/train/a7_a0_residual_distill.yaml",
+      "created_at": "2026-06-11T11:27:44",
+      "dataset_path": "papers/conference/datasets/t10_teacher_gap_p2_velocity_seed0/dataset.npz",
+      "device": "cpu",
+      "epoch_metrics": [
+        {
+          "epoch": 1.0,
+          "train_epoch_residual_mse": 0.05967194032849872,
+          "val_epoch_reconstructed_action_mae": 0.09396152371885466,
+          "val_epoch_reconstructed_action_mse": 0.020997030696220515,
+          "val_epoch_residual_mae": 0.09396152126053518,
+          "val_epoch_residual_mse": 0.020997030696220515
+        },
+        {
+          "epoch": 2.0,
+          "train_epoch_residual_mse": 0.015623156098556332,
+          "val_epoch_reconstructed_action_mae": 0.06701204468321642,
+          "val_epoch_reconstructed_action_mse": 0.010981554625517162,
+          "val_epoch_residual_mae": 0.06701204222489694,
+          "val_epoch_residual_mse": 0.010981554635119972
+        },
+        {
+          "epoch": 3.0,
+          "train_epoch_residual_mse": 0.009854121050014366,
+          "val_epoch_reconstructed_action_mae": 0.07080213225020367,
+          "val_epoch_reconstructed_action_mse": 0.01051740300084958,
+          "val_epoch_residual_mae": 0.07080213217338119,
+          "val_epoch_residual_mse": 0.01051740300084958
+        },
+        {
+          "epoch": 4.0,
+          "train_epoch_residual_mse": 0.007391358688875801,
+          "val_epoch_reconstructed_action_mae": 0.048700702042515885,
+          "val_epoch_reconstructed_action_mse": 0.006155729192993732,
+          "val_epoch_residual_mae": 0.04870070327167563,
+          "val_epoch_residual_mse": 0.006155729192993732
+        },
+        {
+          "epoch": 5.0,
+          "train_epoch_residual_mse": 0.006009388025366104,
+          "val_epoch_reconstructed_action_mae": 0.05706254756448732,
+          "val_epoch_reconstructed_action_mse": 0.007259034363374976,
+          "val_epoch_residual_mae": 0.057062546335327584,
+          "val_epoch_residual_mse": 0.007259034665863507
+        },
+        {
+          "epoch": 6.0,
+          "train_epoch_residual_mse": 0.004927076862141073,
+          "val_epoch_reconstructed_action_mae": 0.038438068297398306,
+          "val_epoch_reconstructed_action_mse": 0.004219639312343281,
+          "val_epoch_residual_mae": 0.03843806952655805,
+          "val_epoch_residual_mse": 0.004219639465988249
+        },
+        {
+          "epoch": 7.0,
+          "train_epoch_residual_mse": 0.0038604051297489905,
+          "val_epoch_reconstructed_action_mae": 0.03898516591666535,
+          "val_epoch_reconstructed_action_mse": 0.003946621718183124,
+          "val_epoch_residual_mae": 0.03898516595507659,
+          "val_epoch_residual_mse": 0.003946621718183124
+        },
+        {
+          "epoch": 8.0,
+          "train_epoch_residual_mse": 0.003904226366579808,
+          "val_epoch_reconstructed_action_mae": 0.0339749954510027,
+          "val_epoch_reconstructed_action_mse": 0.0033094317599619686,
+          "val_epoch_residual_mae": 0.0339749954510027,
+          "val_epoch_residual_mse": 0.0033094316831394845
+        },
+        {
+          "epoch": 9.0,
+          "train_epoch_residual_mse": 0.003249074031528957,
+          "val_epoch_reconstructed_action_mae": 0.04461178012145436,
+          "val_epoch_reconstructed_action_mse": 0.004607902952912965,
+          "val_epoch_residual_mae": 0.04461178012145436,
+          "val_epoch_residual_mse": 0.004607903106557933
+        },
+        {
+          "epoch": 10.0,
+          "train_epoch_residual_mse": 0.0029641784613199202,
+          "val_epoch_reconstructed_action_mae": 0.028318619754976248,
+          "val_epoch_reconstructed_action_mse": 0.0026042728641479896,
+          "val_epoch_residual_mae": 0.028318619735770628,
+          "val_epoch_residual_mse": 0.0026042728617472867
+        },
+        {
+          "epoch": 11.0,
+          "train_epoch_residual_mse": 0.0025243483129857767,
+          "val_epoch_reconstructed_action_mae": 0.03327111566395158,
+          "val_epoch_reconstructed_action_mse": 0.002870007360329159,
+          "val_epoch_residual_mae": 0.03327111566395158,
+          "val_epoch_residual_mse": 0.002870007204283488
+        },
+        {
+          "epoch": 12.0,
+          "train_epoch_residual_mse": 0.0023441705817581994,
+          "val_epoch_reconstructed_action_mae": 0.026708123244888946,
+          "val_epoch_reconstructed_action_mse": 0.0022518534734857166,
+          "val_epoch_residual_mae": 0.0267081238402632,
+          "val_epoch_residual_mse": 0.0022518534710850137
+        },
+        {
+          "epoch": 13.0,
+          "train_epoch_residual_mse": 0.0024821791175755445,
+          "val_epoch_reconstructed_action_mae": 0.025833350593809038,
+          "val_epoch_reconstructed_action_mse": 0.002133949609199968,
+          "val_epoch_residual_mae": 0.02583335061301466,
+          "val_epoch_residual_mse": 0.002133949609199968
+        },
+        {
+          "epoch": 14.0,
+          "train_epoch_residual_mse": 0.0017838649259839226,
+          "val_epoch_reconstructed_action_mae": 0.02341226227755552,
+          "val_epoch_reconstructed_action_mse": 0.0019003133857732274,
+          "val_epoch_residual_mae": 0.023412262892135393,
+          "val_epoch_residual_mse": 0.0019003133101510947
+        },
+        {
+          "epoch": 15.0,
+          "train_epoch_residual_mse": 0.0022473151785809497,
+          "val_epoch_reconstructed_action_mae": 0.048240917439965475,
+          "val_epoch_reconstructed_action_mse": 0.004716646677056852,
+          "val_epoch_residual_mae": 0.04824091993669621,
+          "val_epoch_residual_mse": 0.004716646677056852
+        },
+        {
+          "epoch": 16.0,
+          "train_epoch_residual_mse": 0.00205758847858419,
+          "val_epoch_reconstructed_action_mae": 0.022536510389477654,
+          "val_epoch_reconstructed_action_mse": 0.0017431811967467616,
+          "val_epoch_residual_mae": 0.02253650977489778,
+          "val_epoch_residual_mse": 0.001743181274769597
+        },
+        {
+          "epoch": 17.0,
+          "train_epoch_residual_mse": 0.0018429697274845766,
+          "val_epoch_reconstructed_action_mae": 0.024175296875326956,
+          "val_epoch_reconstructed_action_mse": 0.0018152586271917646,
+          "val_epoch_residual_mae": 0.02417529747070121,
+          "val_epoch_residual_mse": 0.0018152585887805225
+        },
+        {
+          "epoch": 18.0,
+          "train_epoch_residual_mse": 0.0014213742994071954,
+          "val_epoch_reconstructed_action_mae": 0.022944171359156072,
+          "val_epoch_reconstructed_action_mse": 0.0016774199776974435,
+          "val_epoch_residual_mae": 0.022944171359156072,
+          "val_epoch_residual_mse": 0.0016774200161086853
+        },
+        {
+          "epoch": 19.0,
+          "train_epoch_residual_mse": 0.0013353384963817002,
+          "val_epoch_reconstructed_action_mae": 0.022943709483176627,
+          "val_epoch_reconstructed_action_mse": 0.0016578541036598613,
+          "val_epoch_residual_mae": 0.02294370950238225,
+          "val_epoch_residual_mse": 0.0016578540652486193
+        },
+        {
+          "epoch": 20.0,
+          "train_epoch_residual_mse": 0.0017866220378407237,
+          "val_epoch_reconstructed_action_mae": 0.033795558102218855,
+          "val_epoch_reconstructed_action_mse": 0.002775531158328959,
+          "val_epoch_residual_mae": 0.03379555687305911,
+          "val_epoch_residual_mse": 0.002775531158328959
+        },
+        {
+          "epoch": 21.0,
+          "train_epoch_residual_mse": 0.0014166046542198089,
+          "val_epoch_reconstructed_action_mae": 0.02010423825600306,
+          "val_epoch_reconstructed_action_mse": 0.0014554885827786337,
+          "val_epoch_residual_mae": 0.02010423579768357,
+          "val_epoch_residual_mse": 0.0014554886199895246
+        },
+        {
+          "epoch": 22.0,
+          "train_epoch_residual_mse": 0.0013363480836723772,
+          "val_epoch_reconstructed_action_mae": 0.03423543185336551,
+          "val_epoch_reconstructed_action_mse": 0.0025549598322679823,
+          "val_epoch_residual_mae": 0.034235433044114014,
+          "val_epoch_residual_mse": 0.00255495982986728
+        },
+        {
+          "epoch": 23.0,
+          "train_epoch_residual_mse": 0.001252393610834652,
+          "val_epoch_reconstructed_action_mae": 0.018808193477202254,
+          "val_epoch_reconstructed_action_mse": 0.001299006391790191,
+          "val_epoch_residual_mae": 0.018808193477202254,
+          "val_epoch_residual_mse": 0.0012990064680124993
+        },
+        {
+          "epoch": 24.0,
+          "train_epoch_residual_mse": 0.0009873070130245719,
+          "val_epoch_reconstructed_action_mae": 0.021380608489360905,
+          "val_epoch_reconstructed_action_mse": 0.0013830675325647958,
+          "val_epoch_residual_mae": 0.021380608489360905,
+          "val_epoch_residual_mse": 0.0013830674551421362
+        },
+        {
+          "epoch": 25.0,
+          "train_epoch_residual_mse": 0.0009861189658300538,
+          "val_epoch_reconstructed_action_mae": 0.03228131930033366,
+          "val_epoch_reconstructed_action_mse": 0.0025428724025823423,
+          "val_epoch_residual_mae": 0.0322813193387449,
+          "val_epoch_residual_mse": 0.002542872397780937
+        },
+        {
+          "epoch": 26.0,
+          "train_epoch_residual_mse": 0.0013770302624504474,
+          "val_epoch_reconstructed_action_mae": 0.018406238996869263,
+          "val_epoch_reconstructed_action_mse": 0.0012169267309447582,
+          "val_epoch_residual_mae": 0.018406238996869263,
+          "val_epoch_residual_mse": 0.0012169267315449337
+        },
+        {
+          "epoch": 27.0,
+          "train_epoch_residual_mse": 0.0008363005925834576,
+          "val_epoch_reconstructed_action_mae": 0.016241924753507133,
+          "val_epoch_reconstructed_action_mse": 0.0010957337954308611,
+          "val_epoch_residual_mae": 0.016241924753507133,
+          "val_epoch_residual_mse": 0.0010957337954308611
+        },
+        {
+          "epoch": 28.0,
+          "train_epoch_residual_mse": 0.0011700049094614591,
+          "val_epoch_reconstructed_action_mae": 0.020301425074808876,
+          "val_epoch_reconstructed_action_mse": 0.001286422042468713,
+          "val_epoch_residual_mae": 0.020301424479434622,
+          "val_epoch_residual_mse": 0.0012864220040574711
+        },
+        {
+          "epoch": 29.0,
+          "train_epoch_residual_mse": 0.0008785631846500384,
+          "val_epoch_reconstructed_action_mae": 0.01971073490190145,
+          "val_epoch_reconstructed_action_mse": 0.0011844754576759867,
+          "val_epoch_residual_mae": 0.01971073490190145,
+          "val_epoch_residual_mse": 0.0011844754582761624
+        },
+        {
+          "epoch": 30.0,
+          "train_epoch_residual_mse": 0.0010522503059753811,
+          "val_epoch_reconstructed_action_mae": 0.017203724843322204,
+          "val_epoch_reconstructed_action_mse": 0.0010698496892061597,
+          "val_epoch_residual_mae": 0.01720372422874233,
+          "val_epoch_residual_mse": 0.0010698496111833245
+        },
+        {
+          "epoch": 31.0,
+          "train_epoch_residual_mse": 0.0008126183770970374,
+          "val_epoch_reconstructed_action_mae": 0.015939988221103527,
+          "val_epoch_reconstructed_action_mse": 0.0010160452223964911,
+          "val_epoch_residual_mae": 0.015939988230706338,
+          "val_epoch_residual_mse": 0.0010160452223964911
+        },
+        {
+          "epoch": 32.0,
+          "train_epoch_residual_mse": 0.0006767212981942398,
+          "val_epoch_reconstructed_action_mae": 0.023606889140726922,
+          "val_epoch_reconstructed_action_mse": 0.0014956640699298866,
+          "val_epoch_residual_mae": 0.02360688852614705,
+          "val_epoch_residual_mse": 0.0014956640315186445
+        },
+        {
+          "epoch": 33.0,
+          "train_epoch_residual_mse": 0.0018112725910905977,
+          "val_epoch_reconstructed_action_mae": 0.01872908948065867,
+          "val_epoch_reconstructed_action_mse": 0.0011307990251387186,
+          "val_epoch_residual_mae": 0.01872908948065867,
+          "val_epoch_residual_mse": 0.0011307991013610268
+        },
+        {
+          "epoch": 34.0,
+          "train_epoch_residual_mse": 0.0007286221735007957,
+          "val_epoch_reconstructed_action_mae": 0.01661142968547619,
+          "val_epoch_reconstructed_action_mse": 0.0010304157172777006,
+          "val_epoch_residual_mae": 0.01661142968547619,
+          "val_epoch_residual_mse": 0.0010304156398550407
+        },
+        {
+          "epoch": 35.0,
+          "train_epoch_residual_mse": 0.0006269248578831234,
+          "val_epoch_reconstructed_action_mae": 0.01599433682516844,
+          "val_epoch_reconstructed_action_mse": 0.0009392396771516012,
+          "val_epoch_residual_mae": 0.01599433682516844,
+          "val_epoch_residual_mse": 0.0009392396393405349
+        },
+        {
+          "epoch": 36.0,
+          "train_epoch_residual_mse": 0.0007675876071440562,
+          "val_epoch_reconstructed_action_mae": 0.01653420980836682,
+          "val_epoch_reconstructed_action_mse": 0.0009773931497102087,
+          "val_epoch_residual_mae": 0.01653420980836682,
+          "val_epoch_residual_mse": 0.000977393168315654
+        },
+        {
+          "epoch": 37.0,
+          "train_epoch_residual_mse": 0.0006547951700709236,
+          "val_epoch_reconstructed_action_mae": 0.01743884885178608,
+          "val_epoch_reconstructed_action_mse": 0.0009651461789309163,
+          "val_epoch_residual_mae": 0.01743884885178608,
+          "val_epoch_residual_mse": 0.0009651461789309163
+        },
+        {
+          "epoch": 38.0,
+          "train_epoch_residual_mse": 0.0005793939337906202,
+          "val_epoch_reconstructed_action_mae": 0.014204719244463924,
+          "val_epoch_reconstructed_action_mse": 0.0008438652219553587,
+          "val_epoch_residual_mae": 0.014204719244463924,
+          "val_epoch_residual_mse": 0.0008438652606666885
+        },
+        {
+          "epoch": 39.0,
+          "train_epoch_residual_mse": 0.0007463650229094696,
+          "val_epoch_reconstructed_action_mae": 0.024380599701483315,
+          "val_epoch_reconstructed_action_mse": 0.001369142396228794,
+          "val_epoch_residual_mae": 0.024380599682277692,
+          "val_epoch_residual_mse": 0.0013691423974291452
+        },
+        {
+          "epoch": 40.0,
+          "train_epoch_residual_mse": 0.0007426189999972188,
+          "val_epoch_reconstructed_action_mae": 0.013580341749727505,
+          "val_epoch_reconstructed_action_mse": 0.0007967615918114851,
+          "val_epoch_residual_mae": 0.013580341432834759,
+          "val_epoch_residual_mse": 0.0007967615723057762
+        },
+        {
+          "epoch": 41.0,
+          "train_epoch_residual_mse": 0.0005506237791962774,
+          "val_epoch_reconstructed_action_mae": 0.018519708993873948,
+          "val_epoch_reconstructed_action_mse": 0.001011666491452442,
+          "val_epoch_residual_mae": 0.018519708379294075,
+          "val_epoch_residual_mse": 0.0010116664152301335
+        },
+        {
+          "epoch": 42.0,
+          "train_epoch_residual_mse": 0.0007359235172976573,
+          "val_epoch_reconstructed_action_mae": 0.01275542787025185,
+          "val_epoch_reconstructed_action_mse": 0.0007580115353478236,
+          "val_epoch_residual_mae": 0.01275542787985466,
+          "val_epoch_residual_mse": 0.0007580115545534446
+        },
+        {
+          "epoch": 43.0,
+          "train_epoch_residual_mse": 0.0005002722589642559,
+          "val_epoch_reconstructed_action_mae": 0.01579109501181852,
+          "val_epoch_reconstructed_action_mse": 0.0008507586477871427,
+          "val_epoch_residual_mae": 0.01579109562639839,
+          "val_epoch_residual_mse": 0.0008507586273811703
+        },
+        {
+          "epoch": 44.0,
+          "train_epoch_residual_mse": 0.000552456319789332,
+          "val_epoch_reconstructed_action_mae": 0.015559625074409028,
+          "val_epoch_reconstructed_action_mse": 0.0008193846679149627,
+          "val_epoch_residual_mae": 0.015559625074409028,
+          "val_epoch_residual_mse": 0.0008193846685151384
+        },
+        {
+          "epoch": 45.0,
+          "train_epoch_residual_mse": 0.0006095813255262062,
+          "val_epoch_reconstructed_action_mae": 0.023430911146808942,
+          "val_epoch_reconstructed_action_mse": 0.0012353925874349632,
+          "val_epoch_residual_mae": 0.023430911146808942,
+          "val_epoch_residual_mse": 0.0012353925496238968
+        },
+        {
+          "epoch": 46.0,
+          "train_epoch_residual_mse": 0.0007771177932222279,
+          "val_epoch_reconstructed_action_mae": 0.01567192588122125,
+          "val_epoch_reconstructed_action_mse": 0.0008155286974697196,
+          "val_epoch_residual_mae": 0.015671925593136935,
+          "val_epoch_residual_mse": 0.0008155287166753406
+        },
+        {
+          "epoch": 47.0,
+          "train_epoch_residual_mse": 0.000434773547280934,
+          "val_epoch_reconstructed_action_mae": 0.012304956419025813,
+          "val_epoch_reconstructed_action_mse": 0.0006970957354304102,
+          "val_epoch_residual_mae": 0.012304956419025813,
+          "val_epoch_residual_mse": 0.0006970957354304102
+        },
+        {
+          "epoch": 48.0,
+          "train_epoch_residual_mse": 0.0004918972547821274,
+          "val_epoch_reconstructed_action_mae": 0.012845872440295114,
+          "val_epoch_reconstructed_action_mse": 0.0006888896567182532,
+          "val_epoch_residual_mae": 0.012845872123402368,
+          "val_epoch_residual_mse": 0.0006888896756237863
+        },
+        {
+          "epoch": 49.0,
+          "train_epoch_residual_mse": 0.0007797115456824213,
+          "val_epoch_reconstructed_action_mae": 0.017601953154699573,
+          "val_epoch_reconstructed_action_mse": 0.0009316628442038003,
+          "val_epoch_residual_mae": 0.01760195191593702,
+          "val_epoch_residual_mse": 0.0009316628634094212
+        },
+        {
+          "epoch": 50.0,
+          "train_epoch_residual_mse": 0.000441511499942339,
+          "val_epoch_reconstructed_action_mae": 0.013084608699573648,
+          "val_epoch_reconstructed_action_mse": 0.0006967212519285393,
+          "val_epoch_residual_mae": 0.013084608997260773,
+          "val_epoch_residual_mse": 0.0006967212516284516
+        },
+        {
+          "epoch": 51.0,
+          "train_epoch_residual_mse": 0.0006987709125685593,
+          "val_epoch_reconstructed_action_mae": 0.014013384243937646,
+          "val_epoch_reconstructed_action_mse": 0.0007154641825113393,
+          "val_epoch_residual_mae": 0.014013384570433203,
+          "val_epoch_residual_mse": 0.0007154641444001851
+        },
+        {
+          "epoch": 52.0,
+          "train_epoch_residual_mse": 0.0004366215238344449,
+          "val_epoch_reconstructed_action_mae": 0.017636742014921054,
+          "val_epoch_reconstructed_action_mse": 0.0008702012583486159,
+          "val_epoch_residual_mae": 0.017636742014921054,
+          "val_epoch_residual_mse": 0.0008702012391429948
+        },
+        {
+          "epoch": 53.0,
+          "train_epoch_residual_mse": 0.00042824341647850227,
+          "val_epoch_reconstructed_action_mae": 0.020391638121090978,
+          "val_epoch_reconstructed_action_mse": 0.0010402141910437054,
+          "val_epoch_residual_mae": 0.020391638121090978,
+          "val_epoch_residual_mse": 0.001040214153232639
+        },
+        {
+          "epoch": 54.0,
+          "train_epoch_residual_mse": 0.0006356490361459829,
+          "val_epoch_reconstructed_action_mae": 0.0120186409129024,
+          "val_epoch_reconstructed_action_mse": 0.0006334784542576057,
+          "val_epoch_residual_mae": 0.012018641229795146,
+          "val_epoch_residual_mse": 0.0006334784545576935
+        },
+        {
+          "epoch": 55.0,
+          "train_epoch_residual_mse": 0.00039540878598068324,
+          "val_epoch_reconstructed_action_mae": 0.020070929179276862,
+          "val_epoch_reconstructed_action_mse": 0.0009586933315453253,
+          "val_epoch_residual_mae": 0.02007092919848248,
+          "val_epoch_residual_mse": 0.0009586934083678093
+        },
+        {
+          "epoch": 56.0,
+          "train_epoch_residual_mse": 0.0004742317689502052,
+          "val_epoch_reconstructed_action_mae": 0.03020297232622184,
+          "val_epoch_reconstructed_action_mse": 0.0017218692712839894,
+          "val_epoch_residual_mae": 0.030202971077856473,
+          "val_epoch_residual_mse": 0.0017218692712839894
+        },
+        {
+          "epoch": 57.0,
+          "train_epoch_residual_mse": 0.0006763048389756644,
+          "val_epoch_reconstructed_action_mae": 0.012490167908955066,
+          "val_epoch_reconstructed_action_mse": 0.0006224771222453465,
+          "val_epoch_residual_mae": 0.012490167937763497,
+          "val_epoch_residual_mse": 0.0006224771414509676
+        },
+        {
+          "epoch": 58.0,
+          "train_epoch_residual_mse": 0.0003180941725382454,
+          "val_epoch_reconstructed_action_mae": 0.01114830839973881,
+          "val_epoch_reconstructed_action_mse": 0.0005956230622396505,
+          "val_epoch_residual_mae": 0.01114830839973881,
+          "val_epoch_residual_mse": 0.0005956230622396505
+        },
+        {
+          "epoch": 59.0,
+          "train_epoch_residual_mse": 0.0006366266755765881,
+          "val_epoch_reconstructed_action_mae": 0.015483705648308851,
+          "val_epoch_reconstructed_action_mse": 0.0007389370383238935,
+          "val_epoch_residual_mae": 0.015483706262888723,
+          "val_epoch_residual_mse": 0.0007389370770352233
+        },
+        {
+          "epoch": 60.0,
+          "train_epoch_residual_mse": 0.0004538661041787369,
+          "val_epoch_reconstructed_action_mae": 0.011203947439081565,
+          "val_epoch_reconstructed_action_mse": 0.0005890375730331458,
+          "val_epoch_residual_mae": 0.01120394772716588,
+          "val_epoch_residual_mse": 0.0005890375922387669
+        },
+        {
+          "epoch": 61.0,
+          "train_epoch_residual_mse": 0.000332509947031238,
+          "val_epoch_reconstructed_action_mae": 0.010398473421963051,
+          "val_epoch_reconstructed_action_mse": 0.0005503011042462544,
+          "val_epoch_residual_mae": 0.010398473729252988,
+          "val_epoch_residual_mse": 0.0005503011234518755
+        },
+        {
+          "epoch": 62.0,
+          "train_epoch_residual_mse": 0.0003683311369099873,
+          "val_epoch_reconstructed_action_mae": 0.012346456020912035,
+          "val_epoch_reconstructed_action_mse": 0.0005979218751441766,
+          "val_epoch_residual_mae": 0.012346455713622098,
+          "val_epoch_residual_mse": 0.0005979218754442645
+        },
+        {
+          "epoch": 63.0,
+          "train_epoch_residual_mse": 0.00045931889277601654,
+          "val_epoch_reconstructed_action_mae": 0.017625423700736113,
+          "val_epoch_reconstructed_action_mse": 0.0008028184955143517,
+          "val_epoch_residual_mae": 0.017625423681530493,
+          "val_epoch_residual_mse": 0.0008028184955143517
+        },
+        {
+          "epoch": 64.0,
+          "train_epoch_residual_mse": 0.0003589677649008447,
+          "val_epoch_reconstructed_action_mae": 0.014099745468488729,
+          "val_epoch_reconstructed_action_mse": 0.0006381776988078992,
+          "val_epoch_residual_mae": 0.014099745775778666,
+          "val_epoch_residual_mse": 0.0006381776793021904
+        },
+        {
+          "epoch": 65.0,
+          "train_epoch_residual_mse": 0.00043479994702246146,
+          "val_epoch_reconstructed_action_mae": 0.01133794957012375,
+          "val_epoch_reconstructed_action_mse": 0.0005707677336121903,
+          "val_epoch_residual_mae": 0.011337949262833814,
+          "val_epoch_residual_mse": 0.0005707677333121026
+        },
+        {
+          "epoch": 66.0,
+          "train_epoch_residual_mse": 0.00038252655013399983,
+          "val_epoch_reconstructed_action_mae": 0.0201277646807939,
+          "val_epoch_reconstructed_action_mse": 0.0009960661892376604,
+          "val_epoch_residual_mae": 0.020127762837054284,
+          "val_epoch_residual_mse": 0.0009960661892376604
+        },
+        {
+          "epoch": 67.0,
+          "train_epoch_residual_mse": 0.0005288561152730632,
+          "val_epoch_reconstructed_action_mae": 0.013487130427525702,
+          "val_epoch_reconstructed_action_mse": 0.0006197060173128622,
+          "val_epoch_residual_mae": 0.013487130734815639,
+          "val_epoch_residual_mse": 0.0006197059975070656
+        },
+        {
+          "epoch": 68.0,
+          "train_epoch_residual_mse": 0.00036575128617803655,
+          "val_epoch_reconstructed_action_mae": 0.012821035932876148,
+          "val_epoch_reconstructed_action_mse": 0.000609992195022208,
+          "val_epoch_residual_mae": 0.01282103501100634,
+          "val_epoch_residual_mse": 0.0006099921953222958
+        },
+        {
+          "epoch": 69.0,
+          "train_epoch_residual_mse": 0.0003095373696299319,
+          "val_epoch_reconstructed_action_mae": 0.011368502419371717,
+          "val_epoch_reconstructed_action_mse": 0.0005396672978994829,
+          "val_epoch_residual_mae": 0.011368502717058844,
+          "val_epoch_residual_mse": 0.000539667336310725
+        },
+        {
+          "epoch": 70.0,
+          "train_epoch_residual_mse": 0.0006199448365555994,
+          "val_epoch_reconstructed_action_mae": 0.015385382500404663,
+          "val_epoch_reconstructed_action_mse": 0.0007281087363531609,
+          "val_epoch_residual_mae": 0.015385382193114729,
+          "val_epoch_residual_mse": 0.0007281087168474522
+        },
+        {
+          "epoch": 71.0,
+          "train_epoch_residual_mse": 0.00035554699615539514,
+          "val_epoch_reconstructed_action_mae": 0.012776014596267043,
+          "val_epoch_reconstructed_action_mse": 0.0005833134073142904,
+          "val_epoch_residual_mae": 0.012776014288977108,
+          "val_epoch_residual_mse": 0.000583313407914466
+        },
+        {
+          "epoch": 72.0,
+          "train_epoch_residual_mse": 0.00025159460178322986,
+          "val_epoch_reconstructed_action_mae": 0.020929379414797635,
+          "val_epoch_reconstructed_action_mse": 0.0008756512320183778,
+          "val_epoch_residual_mae": 0.020929379414797635,
+          "val_epoch_residual_mse": 0.0008756512308180264
+        },
+        {
+          "epoch": 73.0,
+          "train_epoch_residual_mse": 0.0005534446488233946,
+          "val_epoch_reconstructed_action_mae": 0.01660543300880025,
+          "val_epoch_reconstructed_action_mse": 0.0006957284209519668,
+          "val_epoch_residual_mae": 0.016605433642585744,
+          "val_epoch_residual_mse": 0.0006957284593632088
+        },
+        {
+          "epoch": 74.0,
+          "train_epoch_residual_mse": 0.0002684442467988688,
+          "val_epoch_reconstructed_action_mae": 0.010509470215123384,
+          "val_epoch_reconstructed_action_mse": 0.0005040848056019187,
+          "val_epoch_residual_mae": 0.010509469610146323,
+          "val_epoch_residual_mse": 0.0005040848245074519
+        },
+        {
+          "epoch": 75.0,
+          "train_epoch_residual_mse": 0.0003659587508515758,
+          "val_epoch_reconstructed_action_mae": 0.011751993086212439,
+          "val_epoch_reconstructed_action_mse": 0.0005622825621166187,
+          "val_epoch_residual_mae": 0.011751992788525314,
+          "val_epoch_residual_mse": 0.0005622825813222396
+        },
+        {
+          "epoch": 76.0,
+          "train_epoch_residual_mse": 0.00026153340972861615,
+          "val_epoch_reconstructed_action_mae": 0.010262270653249753,
+          "val_epoch_reconstructed_action_mse": 0.0004983722019669935,
+          "val_epoch_residual_mae": 0.010262271575119561,
+          "val_epoch_residual_mse": 0.0004983722025671692
+        },
+        {
+          "epoch": 77.0,
+          "train_epoch_residual_mse": 0.0005227210453147794,
+          "val_epoch_reconstructed_action_mae": 0.011350303720271739,
+          "val_epoch_reconstructed_action_mse": 0.0005251774235789243,
+          "val_epoch_residual_mae": 0.011350303710668929,
+          "val_epoch_residual_mse": 0.0005251774235789243
+        },
+        {
+          "epoch": 78.0,
+          "train_epoch_residual_mse": 0.0002513764437352462,
+          "val_epoch_reconstructed_action_mae": 0.010659724392329357,
+          "val_epoch_reconstructed_action_mse": 0.0004984162059458477,
+          "val_epoch_residual_mae": 0.01065972407543661,
+          "val_epoch_residual_mse": 0.0004984161870403146
+        },
+        {
+          "epoch": 79.0,
+          "train_epoch_residual_mse": 0.0007112912738311787,
+          "val_epoch_reconstructed_action_mae": 0.016146929594021173,
+          "val_epoch_reconstructed_action_mse": 0.0007016370206499937,
+          "val_epoch_residual_mae": 0.01614692839366986,
+          "val_epoch_residual_mse": 0.0007016370215502572
+        },
+        {
+          "epoch": 80.0,
+          "train_epoch_residual_mse": 0.00026496419186233935,
+          "val_epoch_reconstructed_action_mae": 0.012807103224724066,
+          "val_epoch_reconstructed_action_mse": 0.0005500314459240685,
+          "val_epoch_residual_mae": 0.012807103224724066,
+          "val_epoch_residual_mse": 0.0005500314651296894
+        },
+        {
+          "epoch": 81.0,
+          "train_epoch_residual_mse": 0.00027892789141937575,
+          "val_epoch_reconstructed_action_mae": 0.013297508309116796,
+          "val_epoch_reconstructed_action_mse": 0.0006008786096057397,
+          "val_epoch_residual_mae": 0.013297508011429671,
+          "val_epoch_residual_mse": 0.0006008785904001187
+        },
+        {
+          "epoch": 82.0,
+          "train_epoch_residual_mse": 0.00023802965913529488,
+          "val_epoch_reconstructed_action_mae": 0.00930480748554234,
+          "val_epoch_reconstructed_action_mse": 0.00045905919514196747,
+          "val_epoch_residual_mae": 0.009304808104923618,
+          "val_epoch_residual_mse": 0.00045905919514196747
+        },
+        {
+          "epoch": 83.0,
+          "train_epoch_residual_mse": 0.0003543686473581625,
+          "val_epoch_reconstructed_action_mae": 0.012734666200234961,
+          "val_epoch_reconstructed_action_mse": 0.0005506334752228519,
+          "val_epoch_residual_mae": 0.012734666507524896,
+          "val_epoch_residual_mse": 0.0005506334755229397
+        },
+        {
+          "epoch": 84.0,
+          "train_epoch_residual_mse": 0.0004412426997356309,
+          "val_epoch_reconstructed_action_mae": 0.010153626846349122,
+          "val_epoch_reconstructed_action_mse": 0.0004810348545629198,
+          "val_epoch_residual_mae": 0.010153627470531805,
+          "val_epoch_residual_mse": 0.00048103484435993367
+        },
+        {
+          "epoch": 85.0,
+          "train_epoch_residual_mse": 0.0002408762120475285,
+          "val_epoch_reconstructed_action_mae": 0.009753390289609015,
+          "val_epoch_reconstructed_action_mse": 0.0004684624664421836,
+          "val_epoch_residual_mae": 0.00975339061610457,
+          "val_epoch_residual_mse": 0.00046846251475632394
+        },
+        {
+          "epoch": 86.0,
+          "train_epoch_residual_mse": 0.00020109517220370633,
+          "val_epoch_reconstructed_action_mae": 0.013709571648857838,
+          "val_epoch_reconstructed_action_mse": 0.0006100460025703194,
+          "val_epoch_residual_mae": 0.013709571639255028,
+          "val_epoch_residual_mse": 0.0006100459446533686
+        },
+        {
+          "epoch": 87.0,
+          "train_epoch_residual_mse": 0.0005725883270603163,
+          "val_epoch_reconstructed_action_mae": 0.014806513800143965,
+          "val_epoch_reconstructed_action_mse": 0.0005943574337221218,
+          "val_epoch_residual_mae": 0.014806513809746775,
+          "val_epoch_residual_mse": 0.0005943574532278306
+        },
+        {
+          "epoch": 88.0,
+          "train_epoch_residual_mse": 0.0002303038116310725,
+          "val_epoch_reconstructed_action_mae": 0.009121987681199104,
+          "val_epoch_reconstructed_action_mse": 0.00044132560456751704,
+          "val_epoch_residual_mae": 0.009121987373909167,
+          "val_epoch_residual_mse": 0.00044132559466461866
+        },
+        {
+          "epoch": 89.0,
+          "train_epoch_residual_mse": 0.00028871240433311055,
+          "val_epoch_reconstructed_action_mae": 0.01237395181543723,
+          "val_epoch_reconstructed_action_mse": 0.0005306547079418369,
+          "val_epoch_residual_mae": 0.01237395180583442,
+          "val_epoch_residual_mse": 0.00053065472684737
+        },
+        {
+          "epoch": 90.0,
+          "train_epoch_residual_mse": 0.00024222133613542574,
+          "val_epoch_reconstructed_action_mae": 0.01167487516214215,
+          "val_epoch_reconstructed_action_mse": 0.0004919456503775186,
+          "val_epoch_residual_mae": 0.011674875459829275,
+          "val_epoch_residual_mse": 0.0004919456410747959
+        },
+        {
+          "epoch": 91.0,
+          "train_epoch_residual_mse": 0.0003393228705322699,
+          "val_epoch_reconstructed_action_mae": 0.011276329554700228,
+          "val_epoch_reconstructed_action_mse": 0.0005078609595868982,
+          "val_epoch_residual_mae": 0.011276329545097418,
+          "val_epoch_residual_mse": 0.0005078609409814529
+        },
+        {
+          "epoch": 92.0,
+          "train_epoch_residual_mse": 0.0002605418519313983,
+          "val_epoch_reconstructed_action_mae": 0.013486737009982316,
+          "val_epoch_reconstructed_action_mse": 0.0005518558925935684,
+          "val_epoch_residual_mae": 0.013486737317272252,
+          "val_epoch_residual_mse": 0.0005518559120992771
+        },
+        {
+          "epoch": 93.0,
+          "train_epoch_residual_mse": 0.00022756078956828285,
+          "val_epoch_reconstructed_action_mae": 0.014654219793931516,
+          "val_epoch_reconstructed_action_mse": 0.0006068180745372416,
+          "val_epoch_residual_mae": 0.014654220091618642,
+          "val_epoch_residual_mse": 0.0006068180937428626
+        },
+        {
+          "epoch": 94.0,
+          "train_epoch_residual_mse": 0.00034756994908836757,
+          "val_epoch_reconstructed_action_mae": 0.01937961816518841,
+          "val_epoch_reconstructed_action_mse": 0.0008635202619895778,
+          "val_epoch_residual_mae": 0.01937961816518841,
+          "val_epoch_residual_mse": 0.0008635202631899292
+        },
+        {
+          "epoch": 95.0,
+          "train_epoch_residual_mse": 0.00036428787538037054,
+          "val_epoch_reconstructed_action_mae": 0.009825680237452497,
+          "val_epoch_reconstructed_action_mse": 0.0004443323875270125,
+          "val_epoch_residual_mae": 0.00982567993976537,
+          "val_epoch_residual_mse": 0.0004443323969797791
+        },
+        {
+          "epoch": 96.0,
+          "train_epoch_residual_mse": 0.0002537671478195918,
+          "val_epoch_reconstructed_action_mae": 0.011506531114487597,
+          "val_epoch_reconstructed_action_mse": 0.0004934597621198167,
+          "val_epoch_residual_mae": 0.01150653079759485,
+          "val_epoch_residual_mse": 0.0004934597714225394
+        },
+        {
+          "epoch": 97.0,
+          "train_epoch_residual_mse": 0.000327373444077665,
+          "val_epoch_reconstructed_action_mae": 0.019744355013659752,
+          "val_epoch_reconstructed_action_mse": 0.0008903655609311316,
+          "val_epoch_residual_mae": 0.019744356242819495,
+          "val_epoch_residual_mse": 0.0008903655609311316
+        },
+        {
+          "epoch": 98.0,
+          "train_epoch_residual_mse": 0.0003776655365070638,
+          "val_epoch_reconstructed_action_mae": 0.011097516859136613,
+          "val_epoch_reconstructed_action_mse": 0.0004977536732392436,
+          "val_epoch_residual_mae": 0.011097516532641055,
+          "val_epoch_residual_mse": 0.0004977536537335348
+        },
+        {
+          "epoch": 99.0,
+          "train_epoch_residual_mse": 0.00019471405423382817,
+          "val_epoch_reconstructed_action_mae": 0.009428840314821477,
+          "val_epoch_reconstructed_action_mse": 0.0004277985240824176,
+          "val_epoch_residual_mae": 0.009428840319622883,
+          "val_epoch_residual_mse": 0.0004277985335351842
+        },
+        {
+          "epoch": 100.0,
+          "train_epoch_residual_mse": 0.0004012547975093957,
+          "val_epoch_reconstructed_action_mae": 0.011773462012825486,
+          "val_epoch_reconstructed_action_mse": 0.0004855404143265639,
+          "val_epoch_residual_mae": 0.01177346169593274,
+          "val_epoch_residual_mse": 0.00048554041462665177
+        }
+      ],
+      "health_token_used": false,
+      "history_len": 16,
+      "input_dim": 61,
+      "input_key": "student_obs_history_plus_a0_action",
+      "max_epochs": 100,
+      "method": "rlm1_stripped",
+      "model_class": "A0HistoryResidualMLP",
+      "no_nan_inf": true,
+      "not_paper_grade_final": true,
+      "num_samples": 124145,
+      "output_dir": "papers/conference/results/t10_a7_a0_residual_distill_full_h16_seed0",
+      "rejected_cross_episode_windows": 1935,
+      "rejected_done_crossing_windows": 1935,
+      "residual_dim": 8,
+      "residual_head_used": true,
+      "residual_input_mode": "history_plus_a0_action",
+      "residual_target_max_norm": 4.867947101593018,
+      "residual_target_mean_norm": 1.7456309795379639,
+      "seed": 0,
+      "smoke": false,
+      "source_a0_action_shape": [
+        1000,
+        128,
+        8
+      ],
+      "source_done_shape": [
+        1000,
+        128
+      ],
+      "source_episode_id_shape": [
+        1000,
+        128
+      ],
+      "source_student_obs_shape": [
+        1000,
+        128,
+        61
+      ],
+      "source_teacher_action_shape": [
+        1000,
+        128,
+        8
+      ],
+      "stage": "a7_a0_residual_distillation",
+      "target_key": "a7_residual_target",
+      "teacher_obs_used_as_input": false,
+      "total_candidate_windows": 126080,
+      "train_reconstructed_action_mae": 0.010593655765973637,
+      "train_reconstructed_action_mse": 0.00022300752055271457,
+      "train_residual_mae": 0.010593655834257235,
+      "train_residual_mse": 0.00022300752081944736,
+      "train_samples": 111731,
+      "true_fault_state_used": false,
+      "val_reconstructed_action_mae": 0.011773462012825486,
+      "val_reconstructed_action_mse": 0.0004855404143265639,
+      "val_residual_mae": 0.01177346169593274,
+      "val_residual_mse": 0.00048554041462665177,
+      "val_samples": 12414,
+      "valid_windows": 124145
+    },
+    "a7_checkpoint_model_class": "A0HistoryResidualMLP",
+    "residual_input_mode": "history_plus_a0_action"
+  },
+  "residual_action_max_norm": 4.736255645751953,
+  "residual_action_mean_norm": 1.30250046646595,
+  "residual_input_mode": "history_plus_a0_action",
+  "seed": 0,
+  "semantics": "simulation_joint_state_override_lock",
+  "simulation_override_applied": true,
+  "target_joint": "front_left_foot",
+  "target_vx": 1.0,
+  "target_vx_info": {
+    "target_vx": 1.0,
+    "target_vx_available": true,
+    "target_vx_requested": 1.0,
+    "target_vx_source": "command_manager.base_velocity.command[:, 0]"
+  },
+  "task": "Isaac-Ant-Velocity-Flat-v0",
+  "timeout_rate": 0.0387578125,
+  "torso_height_failure_rate": 0.0503671875,
+  "velocity_metric_source": "robot.data.root_lin_vel_w",
+  "velocity_timeseries_csv": "papers/conference/results/t12_current_fault_final_eval/settled_onset/a7_alpha_010/velocity_timeseries.csv",
+  "yaw_metric_source": "robot.data.root_ang_vel_w"
+}
