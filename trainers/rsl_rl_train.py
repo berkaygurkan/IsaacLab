@@ -13,6 +13,11 @@ DEFAULT_TRAIN_CONFIG = REPO_ROOT / "configs" / "train" / "healthy_baseline.yaml"
 ISAACLAB_SH = REPO_ROOT / "isaaclab.sh"
 UPSTREAM_TRAIN = REPO_ROOT / "scripts" / "reinforcement_learning" / "rsl_rl" / "train.py"
 P2_TRAINING_WRAPPER = REPO_ROOT / "trainers" / "p2_joint_lock_training_wrapper.py"
+EVALUATORS_DIR = REPO_ROOT / "evaluators"
+if str(EVALUATORS_DIR) not in sys.path:
+    sys.path.insert(0, str(EVALUATORS_DIR))
+
+from t18r_control_timing import add_control_timing_args
 
 DEFAULT_STAGE = "healthy_baseline"
 DEFAULT_METHOD = "rlm1_stripped"
@@ -166,10 +171,16 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     parser.add_argument(
         "--enable_p2_joint_lock",
         action="store_true",
-        help="Route training through the repo-owned P2 single-joint-lock runtime hook.",
+        help="Route training through the repo-owned P2 joint-lock runtime hook.",
     )
     parser.add_argument("--p2_fault_config", default="configs/fault/joint_lock/p2_locked_joint.yaml")
     parser.add_argument("--p2_target_joint", default="front_left_foot")
+    parser.add_argument("--p2_target_joint_mode", default="single", choices=("single", "random_per_env"))
+    parser.add_argument(
+        "--p2_supported_target_joints",
+        default="",
+        help="Optional comma-separated joint-name subset for random_per_env P2 sampling.",
+    )
     parser.add_argument("--p2_fault_onset_step", type=int, default=50)
     parser.add_argument("--p2_fault_onset_mode", default="fixed", choices=("fixed", "random_uniform"))
     parser.add_argument("--p2_fault_onset_step_min", type=int, default=30)
@@ -186,6 +197,7 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
     )
     parser.add_argument("--p2_allow_fallback", action="store_true")
     parser.add_argument("--p2_velocity_override", type=float, default=0.0)
+    add_control_timing_args(parser)
     args, passthrough = parser.parse_known_args()
 
     identity_overridden = any(
@@ -212,6 +224,16 @@ def main() -> int:
     args, passthrough = parse_args()
     if args.enable_p2_joint_lock and not args.skip_checkpoint_pointer:
         raise ValueError("P2 joint-lock training requires --skip_checkpoint_pointer; freeze canonical checkpoints manually.")
+    timing_requested = any(
+        value is not None
+        for value in (
+            args.control_frequency_hz,
+            args.sim_dt,
+            args.decimation,
+            args.episode_length_s,
+            args.require_control_frequency_hz,
+        )
+    ) or args.t18r_pg500_timing or args.require_t18r_pg500_timing
 
     upstream_args = [
         str(UPSTREAM_TRAIN.relative_to(REPO_ROOT)),
@@ -225,7 +247,7 @@ def main() -> int:
         args.run_name,
         *passthrough,
     ]
-    if args.enable_p2_joint_lock:
+    if args.enable_p2_joint_lock or timing_requested:
         command = [
             str(ISAACLAB_SH),
             "-p",
@@ -234,6 +256,10 @@ def main() -> int:
             args.p2_fault_config,
             "--p2_target_joint",
             args.p2_target_joint,
+            "--p2_target_joint_mode",
+            args.p2_target_joint_mode,
+            "--p2_supported_target_joints",
+            args.p2_supported_target_joints,
             "--p2_fault_onset_step",
             str(args.p2_fault_onset_step),
             "--p2_fault_onset_mode",
@@ -261,12 +287,31 @@ def main() -> int:
             "--",
             *upstream_args,
         ]
+        if not args.enable_p2_joint_lock:
+            command.insert(command.index("--"), "--p2_disable_fault_wrapper")
+        if args.t18r_pg500_timing:
+            command.insert(command.index("--"), "--t18r_pg500_timing")
+        if args.require_t18r_pg500_timing:
+            command.insert(command.index("--"), "--require_t18r_pg500_timing")
+        for flag, value in (
+            ("--control_frequency_hz", args.control_frequency_hz),
+            ("--sim_dt", args.sim_dt),
+            ("--decimation", args.decimation),
+            ("--episode_length_s", args.episode_length_s),
+            ("--require_control_frequency_hz", args.require_control_frequency_hz),
+        ):
+            if value is not None:
+                insert_at = command.index("--")
+                command[insert_at:insert_at] = [flag, str(value)]
         if args.p2_allow_fallback:
             command.insert(command.index("--p2_task"), "--p2_allow_fallback")
-        print("[T09-R2i] P2 joint-lock runtime hook requested.")
-        print("  P2_runtime_hook_enabled: True")
+        print("[T09-R2i] P2/timing runtime hook requested.")
+        print(f"  P2_runtime_hook_enabled: {args.enable_p2_joint_lock}")
+        print(f"  timing_hook_enabled: {timing_requested}")
         print(f"  fault_profile: P2_locked_joint")
         print(f"  target_joint: {args.p2_target_joint}")
+        print(f"  target_joint_mode: {args.p2_target_joint_mode}")
+        print(f"  supported_target_joints_request: {args.p2_supported_target_joints or 'all_resolved_joints'}")
         print(f"  P2_fault_onset_mode: {args.p2_fault_onset_mode}")
         print(f"  P2_fault_onset_step_min: {args.p2_fault_onset_step_min}")
         print(f"  P2_fault_onset_step_max: {args.p2_fault_onset_step_max}")

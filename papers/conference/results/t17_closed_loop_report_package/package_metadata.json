@@ -1,0 +1,14 @@
+{
+  "ablation_rows": 16,
+  "baseline_policy": "a2_history",
+  "candidate_policy": "a5",
+  "created_at": "2026-06-16T01:48:30",
+  "improvement_rows": 12,
+  "input_roots": [
+    "papers/conference/results/t17_multijoint_closed_loop_eval_a2h_a5_alpha_sweep_seed0",
+    "papers/conference/results/t17_multijoint_closed_loop_eval_a2h_a5_alpha_sweep_fixed_vx1_seed0"
+  ],
+  "not_paper_grade_final": true,
+  "per_joint_rows": 128,
+  "warnings": []
+}

@@ -1,0 +1,1 @@
+evaluators/collect_t14_multijoint_teacher_dataset.py --execute_collect --headless --protocol default --velocity_mode command_random --num_envs 128 --num_steps 1000 --seed 0 --device cuda --progress_every 100

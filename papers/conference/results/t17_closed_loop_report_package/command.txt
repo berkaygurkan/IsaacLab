@@ -1,0 +1,1 @@
+evaluators/summarize_t17_closed_loop_results.py --input_roots papers/conference/results/t17_multijoint_closed_loop_eval_a2h_a5_alpha_sweep_seed0 papers/conference/results/t17_multijoint_closed_loop_eval_a2h_a5_alpha_sweep_fixed_vx1_seed0 --output_dir papers/conference/results/t17_closed_loop_report_package

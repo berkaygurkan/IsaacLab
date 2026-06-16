@@ -1,0 +1,1 @@
+evaluators/run_t17_multijoint_closed_loop_eval.py --execute_eval --policies a2_history a5 --alpha_values 0.25 0.5 1.0 --protocol default --velocity_mode fixed_vx_1p0 --num_envs 128 --num_steps 1000 --seed 0 --device cuda --headless --progress_every 100 --output_dir papers/conference/results/t17_multijoint_closed_loop_eval_a2h_a5_alpha_sweep_fixed_vx1_seed0

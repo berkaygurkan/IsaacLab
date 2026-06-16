@@ -1,0 +1,12 @@
+T17 fixed-vx fault-response figure summary
+plot_mode: absolute_time
+fault_onset_varies: True
+fault_aligned_supported: False
+visual_best_a5: A5 alpha=1.0
+best_a5_alpha_fixed_vx_realistic_random: 1.0
+best_a5_alpha_fixed_vx_late_random: 1.0
+best_deployment_fixed_vx_realistic_random: a2_single_step
+best_deployment_fixed_vx_late_random: a2_single_step
+interpretation: A5 improves A2-history, but A2 single-step is the strongest fixed-command deployment-facing baseline in the current artifacts.
+missing: none expected after using --a2_single_step_root papers/conference/results/t17_multijoint_closed_loop_eval_a2_single_step_fixed_vx1_seed0
+regeneration_required: true

@@ -1,0 +1,71 @@
+profile_id: P2_multi_joint_random
+family: joint_lock
+stage: T13_multi_joint_p2_infrastructure
+description: >
+  Multi-joint P2 locked-joint infrastructure for the conference-stage RLM1
+  stripped pipeline. Each environment samples exactly one locked joint per
+  episode from the resolved Ant joint-effort action term.
+severity: one_joint_per_env_random_lock
+target_joint_mode: random_per_env
+target_joint_source: resolved_joint_names_from_joint_effort_action_term
+active_locked_joints_per_env: 1
+fault_onset_mode: random_uniform
+fault_onset_step_min: 30
+fault_onset_step_max: 150
+fault_onset_step: 50
+status: infrastructure_only_not_trained
+execution_enabled: false
+runtime_fault_injection_implemented: true_guarded_repo_owned_wrapper
+requested_semantics: simulation_joint_state_override_lock
+implemented_semantics: simulation_joint_state_override_lock
+allow_fallback: false
+fallback_semantics: pd_position_hold_surrogate
+fallback_behavior: disabled_fail_fast_if_simulation_joint_state_write_api_unavailable
+pd_surrogate:
+  enabled: false
+  legacy_cli_params_retained_for_single_joint_compatibility:
+    - p2_kp
+    - p2_kd
+    - p2_action_clip
+  legacy_cli_params_used_under_direct_override: false
+lock_capture: current_selected_joint_position_at_onset
+velocity_override: 0.0
+post_onset_enforcement: q_selected_joint_equals_q_lock_and_qd_selected_joint_equals_velocity_override
+reset_behavior: resample_one_fault_joint_and_onset_on_env_reset
+teacher_privilege:
+  task: Isaac-Ant-Teacher-Velocity-MultiJointP2-Flat-v0
+  expected_policy_obs_dim: 77
+  base_student_obs_dim: 61
+  selected_joint_one_hot:
+    vector_name: p2_fault_joint_one_hot
+    vector_source: wrapper_published_selected_joint_index
+    expected_ant_width: 8
+  q_lock_vector:
+    vector_name: p2_fault_q_lock_vector
+    vector_source: wrapper_published_selected_joint_q_lock
+    expected_ant_width: 8
+    pre_capture_value: zeros
+    post_capture_value: captured_q_lock_at_selected_joint_index
+  note: >
+    Multi-joint privileged teacher observations are expected to be 77-D:
+    61-D base student-safe observation plus an 8-D selected-joint one-hot plus
+    an 8-D q-lock vector. Vector widths are inferred from the resolved
+    action-term joint list. For the conference Ant velocity setup this is
+    expected to be 8 actuated joints.
+student_observation:
+  deployment_policy_receives_fault_vector: false
+  deployment_policy_receives_q_lock_vector: false
+  teacher_obs_used_by_deployment_policy: false
+  true_fault_state_used_by_deployment_policy: false
+  health_token_used: false
+method_terms:
+  A7: A0-anchored residual variant
+guardrails:
+  train_on_creation: false
+  evaluate_on_creation: false
+  modify_checkpoints: false
+  modify_task_semantics: false
+notes: >
+  The existing single-joint P2 profile remains the default behavior. This
+  profile is an opt-in infrastructure scaffold for future T13 teacher,
+  dataset, student, and residual rebuilds under a broader P2 distribution.

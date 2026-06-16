@@ -1,0 +1,187 @@
+{
+  "a0_action_available": false,
+  "a0_checkpoint": null,
+  "a7_residual_target_available": false,
+  "array_shapes": {
+    "done": [
+      3200
+    ],
+    "env_id": [
+      3200
+    ],
+    "episode_id": [
+      3200
+    ],
+    "fault_onset_step": [
+      3200
+    ],
+    "p2_fault_active": [
+      3200
+    ],
+    "protocol_label": [
+      3200
+    ],
+    "q_lock_vector": [
+      3200,
+      8
+    ],
+    "reward": [
+      3200
+    ],
+    "sample_index": [
+      3200
+    ],
+    "selected_fault_joint_index": [
+      3200
+    ],
+    "selected_fault_joint_one_hot": [
+      3200,
+      8
+    ],
+    "student_obs": [
+      3200,
+      61
+    ],
+    "teacher_action": [
+      3200,
+      8
+    ],
+    "teacher_obs": [
+      3200,
+      77
+    ],
+    "timestep": [
+      3200
+    ],
+    "velocity_mode_label": [
+      3200
+    ],
+    "velocity_x": [
+      3200
+    ],
+    "vx_cmd": [
+      3200
+    ],
+    "vx_error": [
+      3200
+    ],
+    "yaw_error": [
+      3200
+    ],
+    "yaw_rate": [
+      3200
+    ]
+  },
+  "command_mode_validation": {
+    "command_random": {
+      "command_mode_valid": true,
+      "command_mode_validation_error": "",
+      "vx_cmd_max": 1.4440525770187378,
+      "vx_cmd_mean": 0.7538108229637146,
+      "vx_cmd_min": 0.2152598649263382
+    }
+  },
+  "command_random_vx_range": [
+    0.2,
+    1.5
+  ],
+  "created_at": "2026-06-15T22:36:52",
+  "dataset_npz": "papers/conference/datasets/t14_multijoint_teacher_v2b_seed0_smoke/dataset.npz",
+  "dataset_scope": "t14_multijoint_teacher_rollout_dataset",
+  "dataset_summary_md": "papers/conference/datasets/t14_multijoint_teacher_v2b_seed0_smoke/dataset_summary.md",
+  "dataset_tag": "t14_multijoint_teacher_v2b_seed0_smoke",
+  "debug_max_protocols": 1,
+  "device": "cuda",
+  "downstream_usage": {
+    "A2": "single-step student distillation from student_obs to teacher_action",
+    "A2_history": "H x 61 history-based student distillation",
+    "A5": "A2-history plus residual distillation",
+    "A7": "A0-anchored residual variant if a0_action is explicitly collected"
+  },
+  "fallback_allowed": false,
+  "fault_profile": "P2_locked_joint",
+  "guardrails": {
+    "deployment_student_obs_fault_descriptor_free": true,
+    "no_checkpoint_modification": true,
+    "no_p2_wrapper_modification": true,
+    "no_task_config_modification": true,
+    "no_training": true,
+    "rejected_hard_foot_checkpoint_not_used": true
+  },
+  "health_token_enabled": false,
+  "metadata_json": "papers/conference/datasets/t14_multijoint_teacher_v2b_seed0_smoke/metadata.json",
+  "no_nan_inf_check": true,
+  "not_paper_grade_final": true,
+  "num_envs": 16,
+  "num_steps": 200,
+  "p2_semantics": "simulation_joint_state_override_lock",
+  "pd_surrogate_allowed": false,
+  "post_onset_enforcement": "q[selected_joint] = q_lock and qd[selected_joint] = 0",
+  "progress_every": 50,
+  "q_lock_semantics": "captured_from_current_selected_joint_position_at_fault_onset",
+  "rejected_hard_foot_checkpoint_forbidden": "logs/rsl_rl/teacher_p2_multijoint_velocity_curriculum_v2b__rlm1_stripped__p2_multi_joint_random/2026-06-15_21-17-39_a1f_multijoint_velocity_p2_hard_foot_finetune_120_700_i2000__seed0/model_11996.pt",
+  "rlm_phase": "RLM1 stripped / conference",
+  "run_summaries": [
+    {
+      "fallback_used": false,
+      "fault_onset_step_max": 700,
+      "fault_onset_step_min": 120,
+      "no_nan_inf": true,
+      "num_envs": 16,
+      "num_steps": 200,
+      "p2_fault_became_active": true,
+      "protocol": "realistic_random",
+      "simulation_override_applied": true,
+      "supported_joint_count": 8,
+      "supported_joint_names": [
+        "front_left_leg",
+        "front_right_leg",
+        "left_back_leg",
+        "right_back_leg",
+        "front_left_foot",
+        "front_right_foot",
+        "left_back_foot",
+        "right_back_foot"
+      ],
+      "target_info": {
+        "command_forced_each_step": false,
+        "target_vx": null,
+        "target_vx_available": false,
+        "target_vx_mode_note": "command_random leaves the command-conditioned task range active"
+      },
+      "velocity_mode": "command_random",
+      "velocity_source": "robot.data.root_lin_vel_w",
+      "yaw_rate_source": "robot.data.root_ang_vel_w[:, -1]"
+    }
+  ],
+  "seed": 0,
+  "selected_joint_random_over_all_8": true,
+  "selected_protocols": [
+    "realistic_random"
+  ],
+  "selected_teacher_checkpoint": "logs/rsl_rl/teacher_p2_multijoint_velocity_curriculum_v2b__rlm1_stripped__p2_multi_joint_random/2026-06-15_18-16-03_a1f_multijoint_velocity_p2_v2b_curriculum_curriculum_s2_realistic_transition_random_p2__seed0/model_9997.pt",
+  "selected_teacher_checkpoint_expected": "logs/rsl_rl/teacher_p2_multijoint_velocity_curriculum_v2b__rlm1_stripped__p2_multi_joint_random/2026-06-15_18-16-03_a1f_multijoint_velocity_p2_v2b_curriculum_curriculum_s2_realistic_transition_random_p2__seed0/model_9997.pt",
+  "selected_teacher_label": "A1-F multi-joint teacher v2b, valid but foot-limited",
+  "selected_velocity_modes": [
+    "command_random"
+  ],
+  "student_obs_dim": 61,
+  "student_obs_excludes_fault_joint_one_hot": true,
+  "student_obs_excludes_q_lock_vector": true,
+  "supported_joint_count": 8,
+  "supported_joint_names": [
+    "front_left_leg",
+    "front_right_leg",
+    "left_back_leg",
+    "right_back_leg",
+    "front_left_foot",
+    "front_right_foot",
+    "left_back_foot",
+    "right_back_foot"
+  ],
+  "target_joint_mode": "random_per_env",
+  "task": "Isaac-Ant-Teacher-Velocity-MultiJointP2-Flat-v0",
+  "teacher_obs_dim": 77,
+  "teacher_selection_readme": "papers/conference/results/t13_multi_joint_teacher_selection/README.md",
+  "terminal_log": "papers/conference/datasets/t14_multijoint_teacher_v2b_seed0_smoke/terminal.log"
+}

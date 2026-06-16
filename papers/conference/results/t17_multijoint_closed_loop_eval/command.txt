@@ -1,0 +1,1 @@
+evaluators/run_t17_multijoint_closed_loop_eval.py --execute_eval --policies a2_history a5 --alpha_values 0.25 --protocol realistic_random --velocity_mode command_random --num_envs 16 --num_steps 200 --seed 0 --device cuda --debug_max_runs 2

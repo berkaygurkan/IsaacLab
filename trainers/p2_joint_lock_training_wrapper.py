@@ -30,6 +30,11 @@ import gymnasium as gym
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 UPSTREAM_TRAIN = REPO_ROOT / "scripts" / "reinforcement_learning" / "rsl_rl" / "train.py"
+EVALUATORS_DIR = REPO_ROOT / "evaluators"
+if str(EVALUATORS_DIR) not in sys.path:
+    sys.path.insert(0, str(EVALUATORS_DIR))
+
+from t18r_control_timing import add_control_timing_args, apply_control_timing_to_env_cfg
 
 
 @dataclass(frozen=True)
@@ -39,9 +44,13 @@ class P2JointLockMapping:
     action_term_name: str
     action_dim: int
     target_joint: str
+    target_joint_mode: str
     target_action_index: int
     target_joint_id: int
     joint_names: tuple[str, ...]
+    supported_target_action_indices: tuple[int, ...]
+    supported_target_joints: tuple[str, ...]
+    supported_target_joint_ids: tuple[int, ...]
     fault_onset_step: int
     fault_onset_mode: str
     fault_onset_step_min: int
@@ -90,8 +99,35 @@ def _target_joint_id_from_term(term: Any, target_action_index: int) -> int | Non
         return None
 
 
+def _target_joint_ids_from_term(term: Any, action_dim: int) -> tuple[int, ...] | None:
+    joint_ids = getattr(term, "_joint_ids", None)
+    if isinstance(joint_ids, slice):
+        if joint_ids == slice(None):
+            return tuple(range(action_dim))
+        return None
+    if joint_ids is None:
+        return None
+    try:
+        resolved = tuple(int(joint_ids[index]) for index in range(action_dim))
+    except (TypeError, IndexError, ValueError):
+        return None
+    if len(resolved) != action_dim:
+        return None
+    return resolved
+
+
 def _action_term_asset(term: Any) -> Any | None:
     return getattr(term, "_asset", None)
+
+
+def _parse_supported_target_joints(value: str | tuple[str, ...] | list[str] | None) -> tuple[str, ...] | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        names = tuple(name.strip() for name in value.split(",") if name.strip())
+    else:
+        names = tuple(str(name).strip() for name in value if str(name).strip())
+    return names or None
 
 
 def _simulation_override_unavailable_reason(
@@ -117,6 +153,7 @@ def resolve_p2_action_mapping(
     env: Any,
     *,
     target_joint: str = "front_left_foot",
+    target_joint_mode: str = "single",
     fault_onset_step: int = 50,
     fault_onset_mode: str = "fixed",
     fault_onset_step_min: int = 30,
@@ -129,13 +166,22 @@ def resolve_p2_action_mapping(
     velocity_override: float = 0.0,
     requested_semantics: str = "simulation_joint_state_override_lock",
     allow_fallback: bool = False,
+    supported_target_joints: str | tuple[str, ...] | list[str] | None = None,
 ) -> P2JointLockMapping:
     """Resolve a target Ant joint to exactly one action index."""
+    if target_joint_mode not in {"single", "random_per_env"}:
+        raise ValueError(
+            f"P2 target_joint_mode must be 'single' or 'random_per_env', got {target_joint_mode!r}."
+        )
     if requested_semantics not in {"simulation_joint_state_override_lock", "pd_position_hold_surrogate"}:
         raise ValueError(
             "P2 requested_semantics must be 'simulation_joint_state_override_lock' "
             f"or 'pd_position_hold_surrogate', got {requested_semantics!r}."
         )
+    if target_joint_mode == "random_per_env" and requested_semantics != "simulation_joint_state_override_lock":
+        raise ValueError("Multi-joint P2 requires simulation_joint_state_override_lock semantics.")
+    if target_joint_mode == "random_per_env" and allow_fallback:
+        raise ValueError("Multi-joint P2 disables fallback; use direct simulation-state override or fail fast.")
     if fault_onset_mode not in {"fixed", "random_uniform"}:
         raise ValueError(f"P2 fault_onset_mode must be 'fixed' or 'random_uniform', got {fault_onset_mode!r}.")
     if fault_onset_step_min < 0 or fault_onset_step_max < 0:
@@ -173,6 +219,25 @@ def resolve_p2_action_mapping(
         raise ValueError(f"P2 could not read resolved joint names from action term {action_term_name}.")
     if len(joint_names) != expected_action_dim:
         raise ValueError(f"P2 expected {expected_action_dim} joint names, got {len(joint_names)}: {joint_names}.")
+    resolved_joint_ids = _target_joint_ids_from_term(action_term, expected_action_dim)
+    if resolved_joint_ids is None:
+        raise ValueError(f"P2 could not resolve supported joint ids from action term {action_term_name}.")
+    requested_supported_target_joints = _parse_supported_target_joints(supported_target_joints)
+    if requested_supported_target_joints is None:
+        resolved_supported_target_joints = tuple(joint_names)
+    else:
+        duplicates = sorted({name for name in requested_supported_target_joints if requested_supported_target_joints.count(name) > 1})
+        if duplicates:
+            raise ValueError(f"P2 supported_target_joints contains duplicates: {duplicates}.")
+        missing = [name for name in requested_supported_target_joints if name not in joint_names]
+        if missing:
+            raise ValueError(
+                f"P2 supported_target_joints contains names not resolved by the action term: "
+                f"missing={missing}, joint_names={joint_names}."
+            )
+        resolved_supported_target_joints = requested_supported_target_joints
+    supported_target_action_indices = tuple(joint_names.index(name) for name in resolved_supported_target_joints)
+    supported_target_joint_ids = tuple(resolved_joint_ids[index] for index in supported_target_action_indices)
 
     matches = [index for index, name in enumerate(joint_names) if name == target_joint]
     if len(matches) != 1:
@@ -245,9 +310,13 @@ def resolve_p2_action_mapping(
         action_term_name=action_term_name,
         action_dim=action_dim,
         target_joint=target_joint,
+        target_joint_mode=target_joint_mode,
         target_action_index=matches[0],
         target_joint_id=target_joint_id,
         joint_names=tuple(joint_names),
+        supported_target_action_indices=supported_target_action_indices,
+        supported_target_joints=tuple(resolved_supported_target_joints),
+        supported_target_joint_ids=supported_target_joint_ids,
         fault_onset_step=int(fault_onset_step),
         fault_onset_mode=fault_onset_mode,
         fault_onset_step_min=int(fault_onset_step_min),
@@ -283,6 +352,7 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         env: Any,
         *,
         target_joint: str = "front_left_foot",
+        target_joint_mode: str = "single",
         fault_onset_step: int = 50,
         fault_onset_mode: str = "fixed",
         fault_onset_step_min: int = 30,
@@ -295,6 +365,7 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         velocity_override: float = 0.0,
         requested_semantics: str = "simulation_joint_state_override_lock",
         allow_fallback: bool = False,
+        supported_target_joints: str | tuple[str, ...] | list[str] | None = None,
         debug: bool = False,
     ) -> None:
         super().__init__(env)
@@ -302,6 +373,7 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.mapping = resolve_p2_action_mapping(
             env,
             target_joint=target_joint,
+            target_joint_mode=target_joint_mode,
             fault_onset_step=fault_onset_step,
             fault_onset_mode=fault_onset_mode,
             fault_onset_step_min=fault_onset_step_min,
@@ -314,6 +386,7 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
             velocity_override=velocity_override,
             requested_semantics=requested_semantics,
             allow_fallback=allow_fallback,
+            supported_target_joints=supported_target_joints,
         )
         self.step_count = 0
         self.last_fault_applied = False
@@ -321,6 +394,10 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.ever_fault_applied = False
         self.per_env_step_count = None
         self.per_env_fault_onset_step = None
+        self.per_env_target_action_index = None
+        self.per_env_target_joint_id = None
+        self.p2_fault_joint_one_hot = None
+        self.p2_fault_q_lock_vector = None
         self.fallback_used = self.mapping.semantics != self.mapping.requested_semantics
         self.lock_active = None
         self.lock_capture_position_available = False
@@ -329,21 +406,31 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.last_joint_position_after_override = None
         self.last_joint_velocity_before_override = None
         self.last_joint_velocity_after_override = None
+        self.last_selected_action_indices_before_override = None
+        self.last_selected_joint_ids_before_override = None
         self.last_pd_effort = None
         self.last_target_action_before = None
         self.last_target_action_after = None
         self.last_action_before_fault = None
         self.last_action_after_fault = None
         self.post_step_override_applied = False
+        self.selected_joint_override_checked_env_count = 0
+        self.selected_joint_position_lock_abs_error_max = None
+        self.selected_joint_velocity_after_override_abs_max = None
+        self.selected_joint_override_verified = False
         self.target_joint_velocity_after_override_abs_max = None
         self.fallback_reason = self.mapping.fallback_reason
+        self._publish_fault_state_attrs()
         if self.debug:
             print(f"[T09-R2i P2] action mapping: {self.mapping}", flush=True)
             print("P2_runtime_hook_enabled: True", flush=True)
             print(f"requested_semantics: {self.mapping.requested_semantics}", flush=True)
             print(f"actual_semantics: {self.mapping.semantics}", flush=True)
             print(f"target_joint: {self.mapping.target_joint}", flush=True)
+            print(f"target_joint_mode: {self.mapping.target_joint_mode}", flush=True)
             print(f"target_joint_id: {self.mapping.target_joint_id}", flush=True)
+            print(f"supported_target_joints: {self.mapping.supported_target_joints}", flush=True)
+            print(f"supported_target_action_indices: {self.mapping.supported_target_action_indices}", flush=True)
             print(f"fault_onset_mode: {self.mapping.fault_onset_mode}", flush=True)
             print(f"fault_onset_step: {self.mapping.fault_onset_step}", flush=True)
             print(f"fault_onset_step_min: {self.mapping.fault_onset_step_min}", flush=True)
@@ -352,6 +439,7 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
             print("fault_profile: P2_locked_joint", flush=True)
             print(f"velocity_override: {self.mapping.velocity_override}", flush=True)
             print(f"joint_state_write_api_found: {self.mapping.joint_state_write_api_found}", flush=True)
+            print(f"pd_surrogate_parameters_used: {self.mapping.semantics == 'pd_position_hold_surrogate'}", flush=True)
             print(f"fallback_used: {self.fallback_used}", flush=True)
             print(f"fallback_reason: {self.fallback_reason}", flush=True)
 
@@ -366,6 +454,10 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.ever_fault_applied = False
         self.per_env_step_count = None
         self.per_env_fault_onset_step = None
+        self.per_env_target_action_index = None
+        self.per_env_target_joint_id = None
+        self.p2_fault_joint_one_hot = None
+        self.p2_fault_q_lock_vector = None
         self.fallback_used = self.mapping.semantics != self.mapping.requested_semantics
         self.lock_active = None
         self.lock_capture_position_available = False
@@ -374,13 +466,21 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.last_joint_position_after_override = None
         self.last_joint_velocity_before_override = None
         self.last_joint_velocity_after_override = None
+        self.last_selected_action_indices_before_override = None
+        self.last_selected_joint_ids_before_override = None
         self.last_pd_effort = None
         self.last_target_action_before = None
         self.last_target_action_after = None
         self.last_action_before_fault = None
         self.last_action_after_fault = None
         self.post_step_override_applied = False
+        self.selected_joint_override_checked_env_count = 0
+        self.selected_joint_position_lock_abs_error_max = None
+        self.selected_joint_velocity_after_override_abs_max = None
+        self.selected_joint_override_verified = False
         self.target_joint_velocity_after_override_abs_max = None
+        self._publish_fault_state_attrs()
+        self._ensure_lock_buffers()
         return self.env.reset(**kwargs)
 
     @property
@@ -420,6 +520,10 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
             and self.locked_joint_position is not None
             and self.per_env_step_count is not None
             and self.per_env_fault_onset_step is not None
+            and self.per_env_target_action_index is not None
+            and self.per_env_target_joint_id is not None
+            and self.p2_fault_joint_one_hot is not None
+            and self.p2_fault_q_lock_vector is not None
         ):
             return
         num_envs = self._num_envs()
@@ -428,7 +532,15 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.locked_joint_position = torch.zeros(num_envs, dtype=torch.float32, device=device)
         self.per_env_step_count = torch.zeros(num_envs, dtype=torch.long, device=device)
         self.per_env_fault_onset_step = torch.zeros(num_envs, dtype=torch.long, device=device)
+        self.per_env_target_action_index = torch.zeros(num_envs, dtype=torch.long, device=device)
+        self.per_env_target_joint_id = torch.zeros(num_envs, dtype=torch.long, device=device)
+        self.p2_fault_joint_one_hot = torch.zeros(num_envs, self.mapping.action_dim, dtype=torch.float32, device=device)
+        self.p2_fault_q_lock_vector = torch.zeros(
+            num_envs, self.mapping.action_dim, dtype=torch.float32, device=device
+        )
         self._sample_onset_steps(torch.arange(num_envs, device=device))
+        self._sample_target_joints(torch.arange(num_envs, device=device))
+        self._publish_fault_state_attrs()
 
     def _sample_onset_steps(self, env_ids) -> None:
         import torch
@@ -448,6 +560,81 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
             self.per_env_fault_onset_step[env_ids] = sampled
         else:
             self.per_env_fault_onset_step[env_ids] = int(self.mapping.fault_onset_step)
+
+    def _sample_target_joints(self, env_ids) -> None:
+        import torch
+
+        if (
+            self.per_env_target_action_index is None
+            or self.per_env_target_joint_id is None
+            or self.p2_fault_joint_one_hot is None
+            or self.p2_fault_q_lock_vector is None
+        ):
+            raise RuntimeError("P2 target-joint buffers were not initialized.")
+        if env_ids.numel() == 0:
+            return
+        if self.mapping.target_joint_mode == "random_per_env":
+            selected_supported_indices = torch.randint(
+                low=0,
+                high=len(self.mapping.supported_target_joints),
+                size=(env_ids.numel(),),
+                device=env_ids.device,
+                dtype=torch.long,
+            )
+            supported_action_indices = torch.as_tensor(
+                self.mapping.supported_target_action_indices,
+                dtype=torch.long,
+                device=env_ids.device,
+            )
+            selected_action_indices = supported_action_indices[selected_supported_indices]
+        else:
+            selected_action_indices = torch.full(
+                (env_ids.numel(),),
+                int(self.mapping.target_action_index),
+                device=env_ids.device,
+                dtype=torch.long,
+            )
+        supported_joint_ids = torch.as_tensor(
+            self.mapping.supported_target_joint_ids,
+            dtype=torch.long,
+            device=env_ids.device,
+        )
+        if self.mapping.target_joint_mode == "random_per_env":
+            self.per_env_target_joint_id[env_ids] = supported_joint_ids[selected_supported_indices]
+        else:
+            self.per_env_target_joint_id[env_ids] = int(self.mapping.target_joint_id)
+        self.per_env_target_action_index[env_ids] = selected_action_indices
+        self.p2_fault_joint_one_hot[env_ids] = 0.0
+        self.p2_fault_joint_one_hot[env_ids, selected_action_indices] = 1.0
+        self.p2_fault_q_lock_vector[env_ids] = 0.0
+        self._publish_fault_state_attrs()
+
+    def _update_q_lock_vector(self, env_ids) -> None:
+        if (
+            self.p2_fault_q_lock_vector is None
+            or self.per_env_target_action_index is None
+            or self.locked_joint_position is None
+        ):
+            raise RuntimeError("P2 q-lock vector buffers were not initialized.")
+        if env_ids.numel() == 0:
+            return
+        selected_action_indices = self.per_env_target_action_index[env_ids]
+        self.p2_fault_q_lock_vector[env_ids] = 0.0
+        self.p2_fault_q_lock_vector[env_ids, selected_action_indices] = self.locked_joint_position[env_ids]
+        self._publish_fault_state_attrs()
+
+    def _publish_fault_state_attrs(self) -> None:
+        unwrapped = getattr(self.env, "unwrapped", None)
+        if unwrapped is None:
+            return
+        setattr(unwrapped, "_p2_supported_fault_joint_names", self.mapping.supported_target_joints)
+        setattr(unwrapped, "_p2_target_joint_mode", self.mapping.target_joint_mode)
+        if self.per_env_target_action_index is not None:
+            setattr(unwrapped, "_p2_fault_joint_index", self.per_env_target_action_index)
+        if self.p2_fault_joint_one_hot is not None:
+            setattr(unwrapped, "_p2_fault_joint_one_hot", self.p2_fault_joint_one_hot)
+        if self.p2_fault_q_lock_vector is not None:
+            setattr(unwrapped, "_p2_fault_q_lock_vector", self.p2_fault_q_lock_vector)
 
     def _fault_due_mask(self):
         self._ensure_lock_buffers()
@@ -475,7 +662,21 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
             return None
         return _action_term_asset(term)
 
+    def _selected_action_indices(self):
+        self._ensure_lock_buffers()
+        if self.per_env_target_action_index is None:
+            raise RuntimeError("P2 target action-index buffer was not initialized.")
+        return self.per_env_target_action_index
+
+    def _selected_joint_ids(self):
+        self._ensure_lock_buffers()
+        if self.per_env_target_joint_id is None:
+            raise RuntimeError("P2 target joint-id buffer was not initialized.")
+        return self.per_env_target_joint_id
+
     def _target_joint_position_velocity(self):
+        import torch
+
         asset = self._asset()
         data = getattr(asset, "data", None)
         if data is None:
@@ -484,33 +685,38 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         joint_vel = getattr(data, "joint_vel", None)
         if joint_pos is None or joint_vel is None:
             return None, None
-        return joint_pos[:, self.mapping.target_joint_id], joint_vel[:, self.mapping.target_joint_id]
+        joint_ids = self._selected_joint_ids()
+        return (
+            torch.gather(joint_pos, dim=1, index=joint_ids.unsqueeze(-1)).squeeze(-1),
+            torch.gather(joint_vel, dim=1, index=joint_ids.unsqueeze(-1)).squeeze(-1),
+        )
 
-    def _raw_action_from_effort(self, effort):
+    def _raw_action_from_effort(self, effort, action_indices=None):
         import torch
 
         terms = getattr(self.unwrapped.action_manager, "_terms", None)
         term = terms.get(self.mapping.action_term_name) if isinstance(terms, dict) else None
         scale = getattr(term, "_scale", 1.0)
         offset = getattr(term, "_offset", 0.0)
-        action_index = self.mapping.target_action_index
+        if action_indices is None:
+            action_indices = self._selected_action_indices()
 
         if isinstance(scale, torch.Tensor):
             if scale.ndim == 0:
                 scale_value = torch.full_like(effort, float(scale.item()))
             elif scale.ndim == 1:
-                scale_value = torch.full_like(effort, float(scale[action_index].item()))
+                scale_value = scale.to(device=effort.device)[action_indices]
             else:
-                scale_value = scale[:, action_index]
+                scale_value = torch.gather(scale.to(device=effort.device), dim=1, index=action_indices.unsqueeze(-1)).squeeze(-1)
         else:
             scale_value = torch.full_like(effort, float(scale))
         if isinstance(offset, torch.Tensor):
             if offset.ndim == 0:
                 offset_value = torch.full_like(effort, float(offset.item()))
             elif offset.ndim == 1:
-                offset_value = torch.full_like(effort, float(offset[action_index].item()))
+                offset_value = offset.to(device=effort.device)[action_indices]
             else:
-                offset_value = offset[:, action_index]
+                offset_value = torch.gather(offset.to(device=effort.device), dim=1, index=action_indices.unsqueeze(-1)).squeeze(-1)
         else:
             offset_value = torch.full_like(effort, float(offset))
         if torch.any(torch.abs(scale_value) < 1.0e-8):
@@ -538,6 +744,7 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.locked_joint_position[inactive_env_ids] = joint_pos[inactive_env_ids].detach().clone()
         self.lock_active[inactive_env_ids] = True
         self.lock_capture_position_available = True
+        self._update_q_lock_vector(inactive_env_ids)
 
     def _apply_position_hold_or_fallback(self, locked_action, fault_env_ids):
         import torch
@@ -556,8 +763,9 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         effort = self.mapping.kp * (self.locked_joint_position - joint_pos) - self.mapping.kd * joint_vel
         if not torch.isfinite(effort).all():
             raise RuntimeError("P2 PD position-hold surrogate produced non-finite effort.")
-        raw_action = self._raw_action_from_effort(effort)
-        locked_action[active_env_ids, self.mapping.target_action_index] = raw_action[active_env_ids]
+        action_indices = self._selected_action_indices()
+        raw_action = self._raw_action_from_effort(effort, action_indices)
+        locked_action[active_env_ids, action_indices[active_env_ids]] = raw_action[active_env_ids]
         self.last_pd_effort = effort.detach().clone()
         self.fallback_used = self.mapping.semantics != self.mapping.requested_semantics
         return locked_action
@@ -581,21 +789,43 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         if joint_pos is None or joint_vel is None:
             raise RuntimeError("P2 simulation-state override requires readable joint_pos and joint_vel.")
 
-        desired_pos = self.locked_joint_position[active_env_ids].unsqueeze(-1)
-        desired_vel = torch.full_like(desired_pos, float(self.mapping.velocity_override))
+        selected_joint_ids = self._selected_joint_ids()
+        selected_action_indices = self._selected_action_indices()
+        self.last_selected_action_indices_before_override = selected_action_indices[active_env_ids].detach().clone()
+        self.last_selected_joint_ids_before_override = selected_joint_ids[active_env_ids].detach().clone()
         self.last_joint_position_before_override = joint_pos[active_env_ids].detach().clone()
         self.last_joint_velocity_before_override = joint_vel[active_env_ids].detach().clone()
-        write_joint_state_to_sim(
-            desired_pos,
-            desired_vel,
-            joint_ids=[self.mapping.target_joint_id],
-            env_ids=active_env_ids,
-        )
+        for joint_id in torch.unique(selected_joint_ids[active_env_ids]):
+            joint_env_mask = selected_joint_ids[active_env_ids] == joint_id
+            joint_env_ids = active_env_ids[torch.nonzero(joint_env_mask, as_tuple=False).squeeze(-1)]
+            desired_pos = self.locked_joint_position[joint_env_ids].unsqueeze(-1)
+            desired_vel = torch.full_like(desired_pos, float(self.mapping.velocity_override))
+            write_joint_state_to_sim(
+                desired_pos,
+                desired_vel,
+                joint_ids=[int(joint_id.detach().cpu().item())],
+                env_ids=joint_env_ids,
+            )
         joint_pos_after, joint_vel_after = self._target_joint_position_velocity()
         if joint_pos_after is None or joint_vel_after is None:
             raise RuntimeError("P2 could not read joint state after simulation-state override.")
         self.last_joint_position_after_override = joint_pos_after[active_env_ids].detach().clone()
         self.last_joint_velocity_after_override = joint_vel_after[active_env_ids].detach().clone()
+        position_abs_error = torch.abs(
+            self.last_joint_position_after_override - self.locked_joint_position[active_env_ids]
+        )
+        velocity_abs_error = torch.abs(self.last_joint_velocity_after_override - float(self.mapping.velocity_override))
+        self.selected_joint_override_checked_env_count = int(active_env_ids.numel())
+        self.selected_joint_position_lock_abs_error_max = float(
+            torch.max(position_abs_error).detach().cpu().item()
+        )
+        self.selected_joint_velocity_after_override_abs_max = float(
+            torch.max(velocity_abs_error).detach().cpu().item()
+        )
+        self.selected_joint_override_verified = bool(
+            self.selected_joint_position_lock_abs_error_max <= 1.0e-5
+            and self.selected_joint_velocity_after_override_abs_max <= 1.0e-5
+        )
         self.target_joint_velocity_after_override_abs_max = float(
             torch.max(torch.abs(self.last_joint_velocity_after_override)).detach().cpu().item()
         )
@@ -623,9 +853,12 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
         self.lock_active[done_env_ids] = False
         if self.locked_joint_position is not None:
             self.locked_joint_position[done_env_ids] = 0.0
+        if self.p2_fault_q_lock_vector is not None:
+            self.p2_fault_q_lock_vector[done_env_ids] = 0.0
         if self.per_env_step_count is not None:
             self.per_env_step_count[done_env_ids] = 0
         self._sample_onset_steps(done_env_ids)
+        self._sample_target_joints(done_env_ids)
 
     def _done_tensor(self, value: Any):
         import torch
@@ -695,6 +928,16 @@ class P2JointLockActionMaskWrapper(gym.Wrapper):
             log_extras["P2/target_action_index"] = torch.tensor(
                 float(self.mapping.target_action_index), device=self.unwrapped.device
             )
+            selected_action_indices = self._selected_action_indices().to(dtype=torch.float32)
+            log_extras["P2/selected_fault_joint_index_mean"] = selected_action_indices.mean()
+            log_extras["P2/selected_fault_joint_index_min"] = selected_action_indices.min()
+            log_extras["P2/selected_fault_joint_index_max"] = selected_action_indices.max()
+            log_extras["P2/supported_fault_joint_count"] = torch.tensor(
+                float(len(self.mapping.supported_target_joints)), device=self.unwrapped.device
+            )
+            log_extras["P2/multi_joint_randomization"] = torch.tensor(
+                float(self.mapping.target_joint_mode == "random_per_env"), device=self.unwrapped.device
+            )
             log_extras["P2/locked_action_value"] = torch.tensor(
                 float(self.mapping.locked_action_value), device=self.unwrapped.device
             )
@@ -715,6 +958,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Run upstream RSL-RL training with the repo-owned P2 wrapper.")
     parser.add_argument("--p2_fault_config", default="configs/fault/joint_lock/p2_locked_joint.yaml")
     parser.add_argument("--p2_target_joint", default="front_left_foot")
+    parser.add_argument("--p2_target_joint_mode", default="single", choices=("single", "random_per_env"))
+    parser.add_argument(
+        "--p2_supported_target_joints",
+        default="",
+        help="Optional comma-separated joint-name subset for random_per_env sampling. Empty keeps all resolved joints.",
+    )
     parser.add_argument("--p2_fault_onset_step", type=int, default=50)
     parser.add_argument("--p2_fault_onset_mode", default="fixed", choices=("fixed", "random_uniform"))
     parser.add_argument("--p2_fault_onset_step_min", type=int, default=30)
@@ -733,6 +982,12 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--p2_velocity_override", type=float, default=0.0)
     parser.add_argument("--p2_task", default="Isaac-Ant-Teacher-v0")
     parser.add_argument("--p2_debug", action="store_true")
+    parser.add_argument(
+        "--p2_disable_fault_wrapper",
+        action="store_true",
+        help="Apply optional env timing overrides but do not attach the P2 fault wrapper.",
+    )
+    add_control_timing_args(parser)
     return parser
 
 
@@ -764,13 +1019,30 @@ def _install_gym_make_patch(args: argparse.Namespace) -> None:
     original_make: Callable[..., Any] = gym.make
 
     def make_with_p2_hook(id: Any, *make_args: Any, **make_kwargs: Any) -> Any:
-        env = original_make(id, *make_args, **make_kwargs)
         task_name = str(id)
+        if task_name == args.p2_task:
+            env_cfg = make_kwargs.get("cfg")
+            if env_cfg is not None:
+                timing = apply_control_timing_to_env_cfg(env_cfg, args)
+                print("[T09-R2i P2] control timing applied before gym.make", flush=True)
+                print(f"  control_frequency_hz: {timing['control_frequency_hz']}", flush=True)
+                print(f"  control_dt_s: {timing['control_dt_s']}", flush=True)
+                print(f"  physics_frequency_hz: {timing['physics_frequency_hz']}", flush=True)
+                print(f"  sim_dt_s: {timing['sim_dt_s']}", flush=True)
+                print(f"  decimation: {timing['decimation']}", flush=True)
+                print(f"  timing_source: {timing['control_timing_source']}", flush=True)
+        env = original_make(id, *make_args, **make_kwargs)
         if task_name != args.p2_task:
+            return env
+        if args.p2_disable_fault_wrapper:
+            print("[T09-R2i P2] timing-only gym.make hook used; P2 wrapper not attached", flush=True)
+            print(f"  task: {task_name}", flush=True)
             return env
         wrapped = P2JointLockActionMaskWrapper(
             env,
             target_joint=args.p2_target_joint,
+            target_joint_mode=args.p2_target_joint_mode,
+            supported_target_joints=args.p2_supported_target_joints,
             fault_onset_step=args.p2_fault_onset_step,
             fault_onset_mode=args.p2_fault_onset_mode,
             fault_onset_step_min=args.p2_fault_onset_step_min,
@@ -788,6 +1060,7 @@ def _install_gym_make_patch(args: argparse.Namespace) -> None:
         print("[T09-R2i P2] gym.make hook attached", flush=True)
         print(f"  task: {task_name}", flush=True)
         print(f"  fault_config: {args.p2_fault_config}", flush=True)
+        print(f"  supported_target_joints_request: {args.p2_supported_target_joints or 'all_resolved_joints'}", flush=True)
         print("  no_checkpoint_pointer_update_from_hook: True", flush=True)
         return wrapped
 
@@ -826,8 +1099,11 @@ def main() -> int:
         raise SystemExit(f"Upstream train script not found: {upstream_script}")
 
     print("[T09-R2i P2] installing runtime training hook", flush=True)
-    print("P2_runtime_hook_enabled: True", flush=True)
+    print(f"P2_runtime_hook_enabled: {not args.p2_disable_fault_wrapper}", flush=True)
+    print(f"timing_only_hook_enabled: {args.p2_disable_fault_wrapper}", flush=True)
     print(f"target_joint: {args.p2_target_joint}", flush=True)
+    print(f"target_joint_mode: {args.p2_target_joint_mode}", flush=True)
+    print(f"supported_target_joints_request: {args.p2_supported_target_joints or 'all_resolved_joints'}", flush=True)
     print(f"fault_onset_mode: {args.p2_fault_onset_mode}", flush=True)
     print(f"fault_onset_step: {args.p2_fault_onset_step}", flush=True)
     print(f"fault_onset_step_min: {args.p2_fault_onset_step_min}", flush=True)
@@ -841,6 +1117,12 @@ def main() -> int:
     print(f"P2_kp: {args.p2_kp}", flush=True)
     print(f"P2_kd: {args.p2_kd}", flush=True)
     print(f"P2_action_clip: {args.p2_action_clip}", flush=True)
+    print(f"t18r_pg500_timing: {args.t18r_pg500_timing}", flush=True)
+    print(f"require_t18r_pg500_timing: {args.require_t18r_pg500_timing}", flush=True)
+    print(f"requested_control_frequency_hz: {args.control_frequency_hz}", flush=True)
+    print(f"requested_sim_dt: {args.sim_dt}", flush=True)
+    print(f"requested_decimation: {args.decimation}", flush=True)
+    print(f"required_control_frequency_hz: {args.require_control_frequency_hz}", flush=True)
 
     _install_gym_make_patch(args)
     _prepare_upstream_import_path(upstream_script)

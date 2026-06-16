@@ -1,0 +1,4 @@
+T17 preliminary closed-loop multi-joint P2 evaluation scaffold output.
+Completed runs aggregated: 2. Failed runs recorded: 0.
+Scope: advisor-facing candidate evidence only, not paper-grade final.
+Best observed post-fault vx-error row: policy=a2_single_step protocol=late_random velocity_mode=fixed_vx_1p0 alpha= mean_abs_vx_error_post_fault=0.16176472204750864.

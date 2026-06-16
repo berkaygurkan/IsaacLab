@@ -1,0 +1,8 @@
+T14 multi-joint teacher rollout dataset audit is ready.
+Realistic and late random protocols were collected as separate datasets because combined collection hit a second-environment creation hang; this is treated as infrastructure behavior, not method failure.
+Both datasets are candidate-level evidence for downstream A2, A2-history H16, A5, and optional A7 A0-anchored residual training.
+
+- realistic_random: samples=128000, joints=8/8, vx_cmd_mean=0.877152324, mean_abs_vx_error=0.194354475, p90_abs_vx_error=0.467666936, survival_rate=0.999, no_nan_inf=true.
+- late_random: samples=128000, joints=8/8, vx_cmd_mean=0.877152324, mean_abs_vx_error=0.180941403, p90_abs_vx_error=0.418617135, survival_rate=0.999, no_nan_inf=true.
+
+Latent z_t visualization is deferred to T18 after A2-history/A5 encoder training.

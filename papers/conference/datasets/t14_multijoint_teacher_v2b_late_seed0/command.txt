@@ -1,0 +1,1 @@
+evaluators/collect_t14_multijoint_teacher_dataset.py --execute_collect --headless --protocol late_random --velocity_mode command_random --output_dir papers/conference/datasets/t14_multijoint_teacher_v2b_late_seed0 --dataset_tag t14_multijoint_teacher_v2b_late_seed0 --num_envs 128 --num_steps 1000 --seed 0 --device cuda --progress_every 100

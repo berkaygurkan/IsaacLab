@@ -1,0 +1,72 @@
+profile_id: P2_hard_foot_random
+family: joint_lock
+stage: T13D_hard_foot_teacher_finetune
+description: >
+  Hard-foot-focused multi-joint P2 locked-joint profile for conservative
+  finetuning of the T13-B v2b privileged teacher. This profile samples exactly
+  one selected foot joint per env/episode from the configured hard-foot subset.
+severity: one_hard_foot_joint_per_env_random_lock
+target_joint_mode: random_per_env
+target_joint_source: configured_subset_of_resolved_joint_names_from_joint_effort_action_term
+supported_target_joints:
+  hard_foot:
+    - front_left_foot
+    - front_right_foot
+    - left_back_foot
+  balanced_foot_optional:
+    - front_left_foot
+    - front_right_foot
+    - left_back_foot
+    - right_back_foot
+default_supported_target_joint_set: hard_foot
+active_locked_joints_per_env: 1
+fault_onset_mode: random_uniform
+fault_onset_step_min: 120
+fault_onset_step_max: 700
+fault_onset_step: 50
+status: finetune_plan_not_executed
+execution_enabled: false
+runtime_fault_injection_implemented: true_guarded_repo_owned_wrapper
+requested_semantics: simulation_joint_state_override_lock
+implemented_semantics: simulation_joint_state_override_lock
+allow_fallback: false
+fallback_semantics: pd_position_hold_surrogate
+fallback_behavior: disabled_fail_fast_if_simulation_joint_state_write_api_unavailable
+pd_surrogate:
+  enabled: false
+  legacy_cli_params_retained_for_single_joint_compatibility:
+    - p2_kp
+    - p2_kd
+    - p2_action_clip
+  legacy_cli_params_used_under_direct_override: false
+lock_capture: current_selected_joint_position_at_onset
+velocity_override: 0.0
+post_onset_enforcement: q_selected_joint_equals_q_lock_and_qd_selected_joint_equals_velocity_override
+reset_behavior: resample_one_fault_joint_and_onset_on_env_reset
+teacher_privilege:
+  task: Isaac-Ant-Teacher-Velocity-MultiJointP2-Flat-v0
+  expected_policy_obs_dim: 77
+  base_student_obs_dim: 61
+  selected_joint_one_hot:
+    vector_name: p2_fault_joint_one_hot
+    vector_width: 8
+    vector_space: all_resolved_ant_joint_effort_actions
+  q_lock_vector:
+    vector_name: p2_fault_q_lock_vector
+    vector_width: 8
+    vector_space: all_resolved_ant_joint_effort_actions
+    pre_capture_value: zeros
+    post_capture_value: captured_q_lock_at_selected_joint_index
+student_observation:
+  deployment_policy_receives_fault_vector: false
+  deployment_policy_receives_q_lock_vector: false
+  teacher_obs_used_by_deployment_policy: false
+  true_fault_state_used_by_deployment_policy: false
+  health_token_used: false
+method_terms:
+  A7: A0-anchored residual variant
+guardrails:
+  train_on_creation: false
+  evaluate_on_creation: false
+  modify_checkpoints: false
+  modify_task_semantics: false

@@ -1,0 +1,3 @@
+# Report Result Paragraph
+
+In preliminary advisor-facing single-seed Ant proxy evaluations, the A5 history-residual policy improved post-fault velocity tracking relative to the frozen A2-history student in the packaged T17 runs. Best packaged reductions by velocity mode were: command_random: alpha=0.5, 32.962941% mean-error reduction; fixed_vx_1p0: alpha=1, 52.9743339% mean-error reduction. These are not final paper-grade statistics. The deployment policy remains fault-descriptor-free: it receives student observations only, with no privileged fault labels, q-lock vector, health token, UQ, or safety filter.

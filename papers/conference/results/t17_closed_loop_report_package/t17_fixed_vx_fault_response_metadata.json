@@ -1,0 +1,14 @@
+{
+  "created_at": "2026-06-16T02:05:24",
+  "fault_aligned_supported": false,
+  "figure_pdf": "papers/conference/results/t17_closed_loop_report_package/t17_fixed_vx_fault_response.pdf",
+  "figure_png": "papers/conference/results/t17_closed_loop_report_package/t17_fixed_vx_fault_response.png",
+  "a2_single_step_root": "papers/conference/results/t17_multijoint_closed_loop_eval_a2_single_step_fixed_vx1_seed0",
+  "input_root": "papers/conference/results/t17_multijoint_closed_loop_eval_a2h_a5_alpha_sweep_fixed_vx1_seed0",
+  "missing": [],
+  "not_paper_grade_final": true,
+  "plot_mode": "absolute_time",
+  "regeneration_required": true,
+  "regeneration_note": "A2 single-step fixed-vx artifacts were added after this figure was first generated; rerun evaluators/plot_t17_fixed_vx_fault_response.py before using the PNG/PDF/table.",
+  "teacher_root": "papers/conference/results/t13c_multijoint_teacher_eval_fixed_vx_guarded"
+}

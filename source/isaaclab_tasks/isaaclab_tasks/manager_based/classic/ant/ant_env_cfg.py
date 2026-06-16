@@ -65,6 +65,62 @@ def true_fault_state(env) -> torch.Tensor:
     return torch.zeros(env.num_envs, 1, device=env.device)
 
 
+def _joint_names_from_action_term(term) -> list[str] | None:
+    joint_names = getattr(term, "_joint_names", None)
+    if joint_names is not None:
+        return list(joint_names)
+    descriptor = getattr(term, "IO_descriptor", None)
+    if descriptor is None:
+        return None
+    descriptor_joint_names = getattr(descriptor, "joint_names", None)
+    if descriptor_joint_names is None:
+        return None
+    return list(descriptor_joint_names)
+
+
+def p2_fault_joint_one_hot(env, fallback_dim: int = 1) -> torch.Tensor:
+    """Teacher-only one-hot P2 locked-joint vector published by the P2 wrapper.
+
+    Deployment-facing student observations do not use this term. When the P2
+    wrapper has not been attached yet, infer the width from the resolved Ant
+    joint-effort action term and return an all-zero vector.
+    """
+    published = getattr(env, "_p2_fault_joint_one_hot", None)
+    if published is not None:
+        return published.to(device=env.device, dtype=torch.float32)
+
+    action_manager = getattr(env, "action_manager", None)
+    terms = getattr(action_manager, "_terms", None)
+    if isinstance(terms, dict) and len(terms) == 1:
+        action_term = next(iter(terms.values()))
+        joint_names = _joint_names_from_action_term(action_term)
+        if joint_names:
+            return torch.zeros(env.num_envs, len(joint_names), device=env.device)
+    return torch.zeros(env.num_envs, int(fallback_dim), device=env.device)
+
+
+def p2_fault_q_lock_vector(env, fallback_dim: int = 1) -> torch.Tensor:
+    """Teacher-only one-hot-aligned P2 q-lock vector published by the P2 wrapper.
+
+    The vector is zero before a selected joint's lock angle has been captured.
+    After onset, the selected index stores the captured ``q_lock`` used by the
+    direct simulation-state override. Deployment-facing student observations do
+    not use this term.
+    """
+    published = getattr(env, "_p2_fault_q_lock_vector", None)
+    if published is not None:
+        return published.to(device=env.device, dtype=torch.float32)
+
+    action_manager = getattr(env, "action_manager", None)
+    terms = getattr(action_manager, "_terms", None)
+    if isinstance(terms, dict) and len(terms) == 1:
+        action_term = next(iter(terms.values()))
+        joint_names = _joint_names_from_action_term(action_term)
+        if joint_names:
+            return torch.zeros(env.num_envs, len(joint_names), device=env.device)
+    return torch.zeros(env.num_envs, int(fallback_dim), device=env.device)
+
+
 @configclass
 class ActionsCfg:
     """Action specifications for the MDP."""

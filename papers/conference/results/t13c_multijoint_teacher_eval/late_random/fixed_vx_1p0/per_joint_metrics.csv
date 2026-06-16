@@ -1,0 +1,9 @@
+protocol,velocity_mode,joint_id,joint_name,count,post_fault_mean_vel_x,post_fault_mean_abs_vx_error,post_fault_mean_abs_yaw_error,timeout_rate,torso_height_failure_rate,output_dir
+late_random,fixed_vx_1p0,0,front_left_leg,29462,0.8767471597302052,0.1084860106927588,0.1199249662285574,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,1,front_right_leg,31823,0.7353963526655749,0.12448379241392889,0.09678152662867955,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,2,left_back_leg,29171,0.7754453690638439,0.1168214030425323,0.10212580450701876,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,3,right_back_leg,27925,0.7886864658486475,0.10243702809267152,0.11539265555777685,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,4,front_left_foot,32379,0.6397885674438056,0.2647952194113827,0.16031973394042387,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,5,front_right_foot,36131,0.6157948820287897,0.18586452629955086,0.1164048132537549,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,6,left_back_foot,35300,0.6485017212920775,0.25620619121175126,0.16101480650931893,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0
+late_random,fixed_vx_1p0,7,right_back_foot,28614,0.834346087895827,0.0957284355571499,0.10879953274330377,,,papers/conference/results/t13c_multijoint_teacher_eval/late_random/fixed_vx_1p0

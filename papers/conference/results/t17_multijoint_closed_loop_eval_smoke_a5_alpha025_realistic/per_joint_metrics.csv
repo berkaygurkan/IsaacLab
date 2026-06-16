@@ -1,0 +1,9 @@
+policy,protocol,velocity_mode,alpha,joint_id,joint_name,sample_count,env_count,mean_post_fault_velocity_x,mean_post_fault_abs_vx_error,p90_post_fault_abs_vx_error,survival_rate,done_rate,output_dir
+a5,realistic_random,command_random,0.25,0,front_left_leg,0,1,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,1,front_right_leg,0,0,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,2,left_back_leg,23,2,0.0022847039280864206,0.2153024381917456,0.22014107704162597,1.0,0.0,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,3,right_back_leg,0,1,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,4,front_left_foot,0,2,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,5,front_right_foot,0,6,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,6,left_back_foot,0,3,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
+a5,realistic_random,command_random,0.25,7,right_back_foot,0,2,,,,,,papers/conference/results/t17_multijoint_closed_loop_eval_smoke_a5_alpha025_realistic/realistic_random/command_random/a5_alpha_0p25
